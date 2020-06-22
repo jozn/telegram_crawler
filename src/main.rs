@@ -9,7 +9,7 @@ use grammers_client::{AuthorizationError, Client, Config};
 use grammers_tl_types as tl;
 use grammers_session as session;
 use grammers_tl_types::enums::messages::Messages;
-use grammers_tl_types::enums::Message;
+use grammers_tl_types::enums::{Message, MessageEntity};
 
 mod types;
 
@@ -86,13 +86,12 @@ async fn run2( mut c: Client){
         dcs: vec![],
         client: c,
     };
+    // let mut app = Arc::new(Mutex::new(app));
+    // let app1 = app.get_mut().unwrap();
 
-    let mut app = Arc::new(Mutex::new(app));
-    let app1 = app.get_mut().unwrap();
+    app.get_messages().await;
 
 }
-
-
 
 // types
 use std::collections::HashMap;
@@ -117,8 +116,23 @@ pub struct MsgForwarded {
 
 #[derive(Clone, Debug)]
 pub struct Msg {
-
-    raw: tl::types::Message,
+    pub id: i32,
+    pub from_id: i32,
+    // pub to_id: crate::enums::Peer,
+    // pub fwd_from: Option<crate::enums::MessageFwdHeader>,
+    pub via_bot_id: i32,
+    pub reply_to_msg_id: i32,
+    pub date: i32,
+    pub message: String,
+    // pub media: Option<crate::enums::MessageMedia>,
+    // pub reply_markup: Option<crate::enums::ReplyMarkup>,
+    // pub entities: Option<Vec<crate::enums::MessageEntity>>,
+    pub views: i32,
+    pub edit_date: i32,
+    // pub post_author: Option<String>,
+    // pub grouped_id: Option<i64>,
+    pub restricted: bool,
+    // raw: tl::types::Message,
 }
 
 #[derive(Clone, Debug)]
@@ -160,7 +174,7 @@ pub struct  LoginPhone {
 /////////////////////////////////////////
 
 impl App {
-    pub fn get_contacts(&mut self) {
+    pub async fn get_contacts(&mut self) {
         // get contacts
         let request = tl::functions::contacts::GetContacts {
             hash:23,
@@ -169,7 +183,7 @@ impl App {
         // println!("contacts {:#?}", mt);
     }
 
-    pub fn get_dialogs(&mut self) {
+    pub async fn get_dialogs(&mut self) {
         // get dialogs
         // let id = 754247155;
         let request = tl::functions::messages::GetDialogs {
@@ -181,11 +195,11 @@ impl App {
             limit: 50,
             hash: 0,
         };
-        let mt : tl::enums::messages::Dialogs = c.invoke(&request).await.unwrap();
+        let mt : tl::enums::messages::Dialogs = self.client.invoke(&request).await.unwrap();
         // println!("dilagos {:#?}", mt);
     }
 
-    pub fn get_messages(&mut self) {
+    pub async fn get_messages(&mut self) {
         let request = tl::functions::messages::GetHistory {
             /*peer: tl::enums::InputPeer::Channel(tl::types::InputPeerChannel{
                 channel_id: 1072723547,
@@ -204,34 +218,11 @@ impl App {
             hash: 0
         };
 
-        let mt : tl::enums::messages::Messages = c.invoke(&request).await.unwrap();
+        let mt : tl::enums::messages::Messages = self.client.invoke(&request).await.unwrap();
+        process_msgs(mt);
     }
 
-    pub fn process_messages(&mut self, mt: tl::enums::messages::Messages) {
-        match mt {
-            Messages::ChannelMessages(m) => {
-                for m in m.messages {
-                    match m {
-                        Message::Message(m2) => {
-
-                            println!(">>> \n {:#?}", m2);
-                            if let Some(f) = m2.media {
-                                println!("{:?}", f)
-                            }
-
-                        },
-                        _ => {}
-                    }
-
-                }
-            },
-            _ => {
-                println!("other form of messages!")
-            }
-        }
-    }
-
-    pub fn bench_messages_loading_flood(&mut self) {
+    pub async fn bench_messages_loading_flood(&mut self) {
         let request = tl::functions::messages::GetHistory {
             peer: tl::enums::InputPeer::Channel(tl::types::InputPeerChannel{
                 channel_id: 1355843251,
@@ -246,12 +237,12 @@ impl App {
             hash: 0
         };
 
-        let mt : tl::enums::messages::Messages = c.invoke(&request).await.unwrap();
+        let mt : tl::enums::messages::Messages = self.client.invoke(&request).await.unwrap();
 
         let mut cnt = 0;
         for i in 1..500 {
             println!("> {} -- ", i);
-            let mt : tl::enums::messages::Messages = c.invoke(&request).await.unwrap();
+            let mt : tl::enums::messages::Messages = self.client.invoke(&request).await.unwrap();
 
             match mt {
                 Messages::ChannelMessages(m) => {
@@ -274,6 +265,73 @@ impl App {
         }
     }
 }
+
+fn process_msgs(mt: tl::enums::messages::Messages) {
+    let mut msgs = vec![];
+    let mut urls :Vec<String> = vec![];
+    match mt {
+        Messages::ChannelMessages(m) => {
+            for m in m.messages {
+                match m {
+                    Message::Message(m2) => {
+
+                        println!(">>> \n {:#?}", m2);
+                        if let Some(f) = m2.media.clone() {
+                            // println!("{:?}", f)
+                            
+                        }
+
+                        let ms = message_to_msg(m2.clone());
+                        let mut u =  extract_urls_from_message_text_meta(m2.entities);
+                        urls.append(&mut u);
+                        msgs.push(ms);
+                    },
+                    _ => {}
+                }
+
+            }
+        },
+        _ => {
+            println!("other form of messages!")
+        }
+    }
+    println!("msgs {:#?} ", msgs);
+    println!("urls {:#?} ", urls);
+}
+
+fn message_to_msg(m: tl::types::Message) -> Msg{
+    Msg {
+        id: m.id,
+        from_id: m.id,
+        via_bot_id: m.via_bot_id.unwrap_or(0),
+        reply_to_msg_id: m.reply_to_msg_id.unwrap_or(0),
+        date: m.date,
+        message: m.message,
+        views: m.views.unwrap_or(0),
+        edit_date: m.edit_date.unwrap_or(0),
+        restricted: m.restriction_reason.is_some(),
+        // raw: m,
+    }
+}
+
+fn extract_urls_from_message_text_meta(m: Option<Vec<tl::enums::MessageEntity>>) -> Vec<String>{
+    let mut urls = vec![];
+    if let Some(enti) =  m {
+        for v in enti{
+            use tl::enums::MessageEntity::*;
+            match v {
+                TextUrl(t)=> {
+                    urls.push(t.url)
+                },
+                _ => {},
+            }
+        }
+
+    };
+    urls
+}
+
+
 
 /////////////////////////////////////////
 async fn run( mut c: Client){
