@@ -1,0 +1,25 @@
+[package]
+name = "play_gram1"
+version = "0.1.0"
+authors = ["Hamid <7atashfeshan@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-std = { version = "1.5" }
+grammers-crypto = "0.1.0"
+grammers-mtproto = "0.1.0"
+grammers-mtsender = "0.1.0"
+grammers-client = "0.1.0"
+grammers-session = "0.1.0"
+
+grammers-tl-gen = "0.1.0"
+grammers-tl-parser = "1.0.0"
+grammers-tl-types = "0.1.0"
+
+#grammers-tl-types = { path = "../grammers/lib/grammers-tl-types" }
+#grammers-tl-types = { path = "../grammers/lib/grammers-tl-types", features = ["tl-mtproto"] }
+
+#[patch.crates-io]
+#grammers-tl-types = { path = "../grammers/lib/grammers-tl-types"  , features = ["tl-mtproto"]}
