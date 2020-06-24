@@ -91,7 +91,9 @@ async fn run2( mut c: Client){
 
     // app.get_dialogs().await;
     app.get_messages().await;
-    app.get_channel_info().await;
+    // app.get_channel_info().await;
+    // app.get_channel_by_username().await;
+    // app.get_chat_id().await;
 
 }
 
@@ -99,6 +101,8 @@ async fn run2( mut c: Client){
 use std::collections::HashMap;
 use std::borrow::Borrow;
 use grammers_tl_types::Serializable;
+use grammers_tl_types::enums::contacts::ResolvedPeer;
+use std::io::Write;
 
 pub struct App {
     login: Vec<LoginPhone>,
@@ -186,6 +190,19 @@ pub struct ChannelInfo {
     megagroup: bool,
 }
 
+#[derive(Clone, Default, Debug)]
+pub struct ChannelByUsernameResult {
+    id: i32,
+    title: String,
+    username: String,
+    access_hash: i64,
+    date: i32,
+    photo: u8,
+    version: i32,
+    restricted: bool,
+    megagroup: bool,
+}
+
 #[derive(Clone, Debug)]
 pub struct DC {
 
@@ -253,13 +270,10 @@ impl App {
                        ci.id = c.id;
                        ci.pts = c.pts;
                        ci.read_inbox_max_id = c.read_inbox_max_id;
-                       // ci.pts = c.p
-
+                       ci.members_count = c.participants_count.unwrap_or(0);
                    }
                     _ => {}
                 }
-
-                // use tl::enums::ChatFull;
 
                 if full.chats.len() == 1{
                     let chat = full.chats.get(0).unwrap();
@@ -273,7 +287,7 @@ impl App {
                             ci.access_hash = ch.access_hash.unwrap_or(0);
                             ci.date =  ch.date;
                             ci.version =  ch.version;
-                            ci.members_count = ch.participants_count.unwrap_or(0);
+                            // ci.members_count = ch.participants_count.unwrap_or(0); // Note: it is None in here! use 'full_chat'
                             ci.megagroup = ch.megagroup;
                             ci.restricted = ch.restricted;
                         }
@@ -287,21 +301,77 @@ impl App {
 
     }
 
+    pub async fn get_channel_by_username(&mut self) {
+        let request = tl::functions::contacts::ResolveUsername {
+            // username: "Arsshiy_Fortnite".to_string(),
+            // username: "badansazizanan".to_string(),
+            // username: "arzansaraereza".to_string(),
+            username: "pornstar_15".to_string(),
+        };
+        // let res: tl::enums::ChatFull = self.client.invoke(&request).await.unwrap();
+        let res = self.client.invoke(&request).await.unwrap();
+        println!("resolve username:  {:#?}", res);
+
+        use tl::enums::contacts::ResolvedPeer;
+        match res {
+            ResolvedPeer::Peer(peer) => {
+
+                use tl::enums::Chat;
+                for chat in peer.chats {
+                    match chat {
+                        Chat::Channel(channel) => {
+                            let c = channel;
+                            let res = ChannelByUsernameResult {
+                                id: c.id,
+                                title: c.title,
+                                username: c.username.unwrap_or("".to_string()),
+                                access_hash: c.access_hash.unwrap_or(0),
+                                date: c.date,
+                                photo: 0,
+                                version: c.version,
+                                restricted: c.restricted,
+                                megagroup: c.megagroup
+                            };
+                            println!(">>> channel: #{:#?} ", res);
+                        },
+                        _  => {
+
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    pub async fn get_chat_id(&mut self) {
+        let request = tl::functions::contacts::GetContactIds {
+            hash:1149267300,
+        };
+        // let res: tl::enums::ChatFull = self.client.invoke(&request).await.unwrap();
+        let res = self.client.invoke(&request).await.unwrap();
+        println!("get_chat_id:  {:#?}", res);
+
+    }
+
     pub async fn get_messages(&mut self) {
         let request = tl::functions::messages::GetHistory {
             /*peer: tl::enums::InputPeer::Channel(tl::types::InputPeerChannel{
                 channel_id: 1072723547, // telegraph
                 access_hash: -1615658883512673699,
             }),*/
-            /*
+
             peer: tl::enums::InputPeer::Channel(tl::types::InputPeerChannel{
                 channel_id: 1355843251, // codal365
                 access_hash: -6028453276089081451,
-            }),*/
-            peer: tl::enums::InputPeer::Channel(tl::types::InputPeerChannel{
+            }),
+            /*peer: tl::enums::InputPeer::Channel(tl::types::InputPeerChannel{
                 channel_id: 1163672339, // forever54321
                 access_hash: -3665401744061121093,
-            }),
+            }),*/
+           /* peer: tl::enums::InputPeer::Channel(tl::types::InputPeerChannel{
+                channel_id: 1220769397, // forever54321
+                access_hash: -6783224835856251633,
+            }),*/
             offset_id: 0,
             offset_date: 0,
             add_offset: 0,
@@ -312,9 +382,55 @@ impl App {
         };
 
         let mt : tl::enums::messages::Messages = self.client.invoke(&request).await.unwrap();
-        process_msgs(mt);
+        // println!("messages #{:#?}", mt);
+        // process_msgs(mt, &mut self);
+        self.process_msgs(mt).await;
     }
 
+    pub async fn get_file(&mut self, req : tl::types::InputFileLocation ) {
+        // let fl = tl::enums::InputFileLocation;
+        let request = tl::functions::upload::GetFile {
+            precise: false,
+            cdn_supported: false,
+            location: tl::enums::InputFileLocation::Location(req),
+            offset: 0,
+            limit: 524288
+        };
+        let res = self.client.invoke(&request).await.unwrap();
+        println!("get_chat_id:  {:#?}", res);
+
+    }
+
+    pub async fn get_file_photo(&mut self, req : tl::types::InputPhotoFileLocation ) {
+        println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  {:#?}", req);
+        let request = tl::functions::upload::GetFile {
+            precise: false,
+            cdn_supported: false,
+            location: tl::enums::InputFileLocation::InputPhotoFileLocation(req.clone()),
+            offset: 0,
+            limit: 524288
+        };
+        let res = self.client.invoke(&request).await.unwrap();
+        println!("%%%%%% get_file_photo :  {:#?}", res);
+
+        std::fs::create_dir_all("./out/").unwrap();
+        let name = format!("./out/{}.jpg", req.id);
+        let mut f = std::fs::File::create(name).unwrap();
+
+        use tl::enums::upload::File;
+
+        match res {
+            File::File(tfile) => {
+                f.write(&tfile.bytes);
+            },
+            File::CdnRedirect(red) => {
+
+            },
+        };
+
+
+
+    }
     pub async fn bench_messages_loading_flood(&mut self) {
         let request = tl::functions::messages::GetHistory {
             peer: tl::enums::InputPeer::Channel(tl::types::InputPeerChannel{
@@ -357,9 +473,79 @@ impl App {
             }
         }
     }
+
+    async fn process_msgs(&mut self, mt: tl::enums::messages::Messages) {
+        let mut msgs = vec![];
+        let mut urls :Vec<String> = vec![];
+        match mt {
+            Messages::ChannelMessages(m) => {
+                for m in m.messages {
+                    match m {
+                        Message::Message(m2) => {
+
+                            if m2.fwd_from.is_some() {
+                                // println!(">>> msg fwd \n {:#?}", m2);
+                            }
+                            if let Some(f) = m2.media.clone() {
+                                println!(">>>> file meida {:#?}", f);
+                                use tl::enums::MessageMedia;
+                                match f {
+                                    MessageMedia::Photo(photo) => {
+                                        if let Some(pic) = photo.photo {
+                                            use tl::enums::Photo;
+                                            match pic {
+                                                Photo::Photo(photo) => {
+                                                    let p = photo;
+                                                    println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ");
+                                                    /*let g=  tl::types::InputFileLocation{
+                                                        volume_id: 0,
+                                                        local_id: 0,
+                                                        secret: p.access_hash,
+                                                        file_reference: p.file_reference,
+                                                    };
+                                                    p.sizes*/
+                                                    let g=  tl::types::InputPhotoFileLocation{
+                                                        id: p.id,
+                                                        access_hash: p.access_hash,
+                                                        file_reference: p.file_reference,
+                                                        thumb_size: "s".to_string()
+                                                    };
+                                                    self.get_file_photo(g).await;
+                                                }
+                                                _ => {}
+                                            }
+                                        }
+                                    },
+                                    _ => {}
+                                }
+
+                                // app.get_file();
+                            }
+
+                            let ms = message_to_msg(m2.clone());
+                            let mut u =  extract_urls_from_message_entity(m2.entities);
+                            urls.append(&mut u);
+                            msgs.push(ms);
+                        },
+                        _ => {}
+                    }
+                }
+            },
+            _ => {
+                println!("other form of messages!")
+            }
+        }
+        // println!("msgs {:#?} ", msgs);
+        // println!("urls {:#?} ", urls);
+    }
+
 }
 
-fn process_msgs(mt: tl::enums::messages::Messages) {
+struct getFileReq {
+
+}
+
+fn process_msgs(mt: tl::enums::messages::Messages, app: &mut App) {
     let mut msgs = vec![];
     let mut urls :Vec<String> = vec![];
     match mt {
@@ -368,10 +554,13 @@ fn process_msgs(mt: tl::enums::messages::Messages) {
                 match m {
                     Message::Message(m2) => {
 
-                       // println!(">>> \n {:#?}", m2);
+                        if m2.fwd_from.is_some() {
+                            // println!(">>> msg fwd \n {:#?}", m2);
+                        }
                         if let Some(f) = m2.media.clone() {
-                            // println!("{:?}", f)
+                            println!(">>>> file meida {:?}", f)
 
+                            // app.get_file();
                         }
 
                         let ms = message_to_msg(m2.clone());
@@ -411,7 +600,7 @@ fn message_to_msg(m: tl::types::Message) -> Msg{
 
         }
     };
-    println!("forward {:#?} ", fwd);
+    // println!("forward {:#?} ", fwd);
     Msg {
         silent: m.silent,
         post: m.post,
