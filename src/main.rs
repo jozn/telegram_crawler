@@ -103,6 +103,7 @@ use std::borrow::Borrow;
 use grammers_tl_types::Serializable;
 use grammers_tl_types::enums::contacts::ResolvedPeer;
 use std::io::Write;
+// use futures::AsyncWriteExt;
 
 pub struct App {
     login: Vec<LoginPhone>,
@@ -360,14 +361,14 @@ impl App {
                 access_hash: -1615658883512673699,
             }),*/
 
-            peer: tl::enums::InputPeer::Channel(tl::types::InputPeerChannel{
+            /*peer: tl::enums::InputPeer::Channel(tl::types::InputPeerChannel{
                 channel_id: 1355843251, // codal365
                 access_hash: -6028453276089081451,
-            }),
-            /*peer: tl::enums::InputPeer::Channel(tl::types::InputPeerChannel{
+            }),*/
+            peer: tl::enums::InputPeer::Channel(tl::types::InputPeerChannel{
                 channel_id: 1163672339, // forever54321
                 access_hash: -3665401744061121093,
-            }),*/
+            }),
            /* peer: tl::enums::InputPeer::Channel(tl::types::InputPeerChannel{
                 channel_id: 1220769397, // forever54321
                 access_hash: -6783224835856251633,
@@ -427,10 +428,70 @@ impl App {
 
             },
         };
-
-
-
     }
+
+    pub async fn get_file_doc(&mut self, req : tl::types::InputDocumentFileLocation ) {
+        println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  {:#?}", req);
+        let limit = 524288;
+        let mut out_buffer = Vec::with_capacity(limit as usize);
+        let mut offset = 0;
+
+        while true {
+            let request = tl::functions::upload::GetFile {
+                precise: false,
+                cdn_supported: false,
+                location: tl::enums::InputFileLocation::InputDocumentFileLocation(req.clone()),
+                offset: offset,
+                limit: limit,
+            };
+            let res = self.client.invoke(&request).await;
+
+            match res {
+                Ok(res) => {
+                    use tl::enums::upload::File;
+                    match res {
+                        File::File(tfile) => {
+                            let len = tfile.bytes.len() as i32;
+                            out_buffer.write(&tfile.bytes);
+                            if len ==  limit {
+                                  offset = offset + limit;
+                            } else {
+                                break;
+                            }
+                        },
+                        File::CdnRedirect(red) => {
+                            break;
+                        },
+                    };
+                },
+                Err(err) => {
+                   break;
+                }
+            }
+            //println!("%%%%%% get_file_photo :  {:#?}", res);
+        }
+
+        if out_buffer.len() == 0 {
+            return
+        }
+
+        std::fs::create_dir_all("./out/").unwrap();
+        let name = format!("./out/{}.file", req.id);
+        let mut f = std::fs::File::create(name).unwrap();
+        f.write(&out_buffer);
+
+        // use tl::enums::upload::File;
+
+        /*match res {
+            File::File(tfile) => {
+                f.write(&tfile.bytes);
+            },
+            File::CdnRedirect(red) => {
+
+            },
+        };*/
+    }
+
     pub async fn bench_messages_loading_flood(&mut self) {
         let request = tl::functions::messages::GetHistory {
             peer: tl::enums::InputPeer::Channel(tl::types::InputPeerChannel{
@@ -508,7 +569,7 @@ impl App {
                                                         id: p.id,
                                                         access_hash: p.access_hash,
                                                         file_reference: p.file_reference,
-                                                        thumb_size: "s".to_string()
+                                                        thumb_size: "w".to_string()
                                                     };
                                                     self.get_file_photo(g).await;
                                                 }
@@ -516,6 +577,35 @@ impl App {
                                             }
                                         }
                                     },
+
+                                    MessageMedia::Document(doc) => {
+                                        if let Some(document) = doc.document {
+                                            use tl::enums::Document;
+                                            match document {
+                                                Document::Document(doc) => {
+                                                    let d = doc;
+                                                    println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ");
+                                                    /*let g=  tl::types::InputFileLocation{
+                                                        volume_id: 0,
+                                                        local_id: 0,
+                                                        secret: p.access_hash,
+                                                        file_reference: p.file_reference,
+                                                    };
+                                                    p.sizes*/
+                                                    let g=  tl::types::InputDocumentFileLocation{
+                                                        id: d.id,
+                                                        access_hash: d.access_hash,
+                                                        file_reference: d.file_reference,
+                                                        thumb_size: "w".to_string()
+                                                    };
+                                                    self.get_file_doc(g).await;
+                                                }
+                                                _ => {}
+                                            }
+                                        }
+                                    },
+
+
                                     _ => {}
                                 }
 
