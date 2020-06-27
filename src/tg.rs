@@ -5,11 +5,18 @@ use grammers_tl_types as tl;
 use grammers_session as session;
 use grammers_tl_types::enums::messages::Messages;
 use grammers_tl_types::enums::{Message, MessageEntity};
+use grammers_tl_types::RemoteCall;
+use grammers_mtsender::InvocationError;
 use std::io::Write;
 
 use crate::types;
 
+async fn send_req<R: RemoteCall>(g: &types::G, request: &R) -> Result<R::Return,InvocationError>{
+    let mut m = g.clients.lock().unwrap();
 
+    let mut s = m.get_mut().get_session().await.unwrap().lock().unwrap().invoke(request).await;
+    s
+}
 pub async fn get_contacts(g :&mut types::G) {
     // get contacts
     let request = tl::functions::contacts::GetContacts {

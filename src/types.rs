@@ -6,15 +6,20 @@ use std::io::Write;
 use grammers_client::{AuthorizationError, Client, Config};
 // use futures::AsyncWriteExt;
 use std::sync::{Arc,Mutex};
+use std::cell::Cell;
 
-pub type G = Arc<Mutex<App>>;
+// pub type G = Arc<Mutex<App>>;
+pub type G = Arc<App>;
+
+use crate::client_pool;
 
 pub struct App {
     pub login: Vec<LoginPhone>,
     pub channels: HashMap<i64,ChannelSpace>,
     pub sessions: Vec<Session>,
     pub dcs: Vec<DC>,
-    pub client: Client,
+    // pub client: Client,
+    pub clients: Mutex<Cell<client_pool::ClientPool>>,
 }
 
 #[derive(Clone, Debug)]

@@ -1,3 +1,4 @@
+
 #![allow(dead_code)]
 #![allow(unused_imports)]
 #![allow(unused_variables)]
@@ -12,86 +13,38 @@ use grammers_tl_types::enums::messages::Messages;
 use grammers_tl_types::enums::{Message, MessageEntity};
 
 mod types;
+mod client_pool;
+
+use std::cell::*;
+
 mod tg;
+mod tg2;
 
-fn read() -> String {
-    let mut input = String::new();
-    match std::io::stdin().read_line(&mut input) {
-        Ok(_) => input.trim().to_string(),
-        Err(e) => panic!("Can not get input value: {:?}", e)
-    }
-}
-
-async fn async_main() -> Result<(), AuthorizationError> {
-    println!("Connecting to Telegram...");
-    let api_id = 123259;
-    let api_hash = "e88ec58aa1ce01f5630e194e9571d751".to_string();
-    let cf = Config{
-        session: session::Session::load_or_create("./s1.session").unwrap() ,
-        api_id: api_id,
-        api_hash: api_hash.clone(),
-        params: Default::default()
-    };
-    let mut client = Client::connect(cf).await?;
-    println!("Connected!");
-
-    println!("Sending ping...");
-    dbg!(client.invoke(&tl::functions::Ping { ping_id: 90 }).await?);
-    println!("Ping sent successfully!");
-
-    // login
-    if !client.is_authorized().await? {
-        println!("Signing in...");
-        let phone = "989338828058";
-        match client.request_login_code(phone,api_id, &api_hash).await {
-            Ok(res) => {
-                println!("write the code form telgeram ....");
-                let s = read();
-                match client.sign_in(&s).await {
-                    Ok(user) => {
-                        println!("sigin in {:?} ", user)
-                    },
-                    Err(err) => {
-                        println!("sigin in error {:?} ", err)
-                    },
-                    _ => {}
-                }
-            },
-            Err(e) => {
-                println!("error in sending conde: {}", e);
-            }
-        };
-        // client.bot_sign_in(&token, api_id, &api_hash).await?;
-        println!("Signed in!");
-    } else {
-        println!("!! Already Signed in!");
-
-    }
-
-    run2(client).await;
-
-    Ok(())
-}
-
-fn main() -> Result<(), AuthorizationError> {
-    task::block_on(async_main())
+fn main()  {
+    task::block_on(run2())
 }
 
 use std::sync::{Arc, Mutex};
-async fn run2( mut c: Client){
+async fn run2(){
 
     let mut app = types::App{
         login: vec![],
         channels: Default::default(),
         sessions: vec![],
         dcs: vec![],
-        client: c,
+        clients: Mutex::new(Cell::new(client_pool::ClientPool{
+            client: None,
+        })),
     };
+
+    let app2 = Arc::new(app);
+
+    tg2::get_contacts( app2.clone()).await;
     // let mut app = Arc::new(Mutex::new(app));
     // let app1 = app.get_mut().unwrap();
 
     // app.get_dialogs().await;
-    tg::get_messages().await;
+    // tg::get_messages().await;
     // app.get_channel_info().await;
     // app.get_channel_by_username().await;
     // app.get_chat_id().await;
