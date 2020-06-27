@@ -436,7 +436,7 @@ impl App {
         let mut out_buffer = Vec::with_capacity(limit as usize);
         let mut offset = 0;
 
-        while true {
+        loop {
             let request = tl::functions::upload::GetFile {
                 precise: false,
                 cdn_supported: false,
