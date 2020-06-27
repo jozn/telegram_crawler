@@ -1,12 +1,12 @@
-use std::collections::HashMap;
-use std::borrow::Borrow;
-use grammers_tl_types::Serializable;
-use grammers_tl_types::enums::contacts::ResolvedPeer;
-use std::io::Write;
 use grammers_client::{AuthorizationError, Client, Config};
+use grammers_tl_types::enums::contacts::ResolvedPeer;
+use grammers_tl_types::Serializable;
+use std::borrow::Borrow;
+use std::collections::HashMap;
+use std::io::Write;
 // use futures::AsyncWriteExt;
-use std::sync::{Arc,Mutex};
 use std::cell::Cell;
+use std::sync::{Arc, Mutex};
 
 // pub type G = Arc<Mutex<App>>;
 pub type G = Arc<App>;
@@ -15,7 +15,7 @@ use crate::client_pool;
 
 pub struct App {
     pub login: Vec<LoginPhone>,
-    pub channels: HashMap<i64,ChannelSpace>,
+    pub channels: HashMap<i64, ChannelSpace>,
     pub sessions: Vec<Session>,
     pub dcs: Vec<DC>,
     // pub client: Client,
@@ -23,9 +23,7 @@ pub struct App {
 }
 
 #[derive(Clone, Debug)]
-pub struct MsgReplayTo {
-
-}
+pub struct MsgReplayTo {}
 
 #[derive(Clone, Debug)]
 pub struct MsgForwarded {
@@ -65,20 +63,15 @@ pub struct Msg {
 }
 
 #[derive(Clone, Debug)]
-pub enum MediaType {
-
-}
+pub enum MediaType {}
 
 #[derive(Clone, Debug)]
-pub struct Media {
-
-}
+pub struct Media {}
 
 #[derive(Clone, Debug)]
 pub struct ChannelSpace {
     pub info: ChannelInfo,
-    pub msgs: HashMap<u32,Msg>,
-
+    pub msgs: HashMap<u32, Msg>,
 }
 
 #[derive(Clone, Default, Debug)]
@@ -113,16 +106,10 @@ pub struct ChannelByUsernameResult {
 }
 
 #[derive(Clone, Debug)]
-pub struct DC {
-
-}
+pub struct DC {}
 
 #[derive(Clone, Debug)]
-pub struct Session {
-
-}
+pub struct Session {}
 
 #[derive(Clone, Debug)]
-pub struct  LoginPhone {
-
-}
+pub struct LoginPhone {}
