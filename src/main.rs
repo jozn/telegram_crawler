@@ -18,6 +18,7 @@ use std::cell::*;
 
 mod tg;
 mod tg2;
+// mod threading;
 
 fn main() {
     task::block_on(run2())
@@ -34,10 +35,15 @@ async fn run2() {
     };
 
     let app2 = Arc::new(app);
-
-    // tg2::get_contacts( app2.clone()).await;
     tg::get_contacts(&app2).await;
     tg::get_messages(&app2).await;
+
+    // threading::run();
+
+
+    // tg2::get_contacts( app2.clone()).await;
+    // tg::get_contacts(&app2).await;
+    // tg::get_messages(&app2).await;
     // let mut app = Arc::new(Mutex::new(app));
     // let app1 = app.get_mut().unwrap();
 

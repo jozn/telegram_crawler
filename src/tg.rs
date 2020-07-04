@@ -44,7 +44,7 @@ pub async fn get_dialogs(g: &types::G) {
         hash: 0,
     };
     let mt: tl::enums::messages::Dialogs = send_req(g, &request).await.unwrap();
-    println!("dilagos {:#?}", mt);
+    // println!("dilagos {:#?}", mt);
 }
 
 pub async fn get_channel_info(g: &types::G) {
@@ -56,7 +56,7 @@ pub async fn get_channel_info(g: &types::G) {
     };
     // let res: tl::enums::ChatFull = self.client.invoke(&request).await.unwrap();
     let res = send_req(g, &request).await.unwrap();
-    println!("request {:#?}", res);
+    // println!("request {:#?}", res);
 
     let mut ci = types::ChannelInfo::default();
 
@@ -101,7 +101,7 @@ pub async fn get_channel_info(g: &types::G) {
         }
     }
 
-    println!("channel info {:#?}", ci);
+    // println!("channel info {:#?}", ci);
 }
 
 pub async fn get_channel_by_username(g: &types::G) {
@@ -113,7 +113,7 @@ pub async fn get_channel_by_username(g: &types::G) {
     };
     // let res: tl::enums::ChatFull = self.client.invoke(&request).await.unwrap();
     let res = send_req(g, &request).await.unwrap();
-    println!("resolve username:  {:#?}", res);
+    // println!("resolve username:  {:#?}", res);
 
     use tl::enums::contacts::ResolvedPeer;
     match res {
@@ -147,7 +147,7 @@ pub async fn get_chat_id(g: &types::G) {
     let request = tl::functions::contacts::GetContactIds { hash: 1149267300 };
     // let res: tl::enums::ChatFull = self.client.invoke(&request).await.unwrap();
     let res = send_req(g, &request).await.unwrap();
-    println!("get_chat_id:  {:#?}", res);
+    // println!("get_chat_id:  {:#?}", res);
 }
 
 pub async fn get_messages(g: &types::G) {
@@ -194,11 +194,11 @@ pub async fn get_file(g: &types::G, req: tl::types::InputFileLocation) {
         limit: 524288,
     };
     let res = send_req(g, &request).await.unwrap();
-    println!("get_chat_id:  {:#?}", res);
+    // println!("get_chat_id:  {:#?}", res);
 }
 
 pub async fn get_file_photo(g: &types::G, req: tl::types::InputPhotoFileLocation) {
-    println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  {:#?}", req);
+    // println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  {:#?}", req);
     let request = tl::functions::upload::GetFile {
         precise: false,
         cdn_supported: false,
@@ -207,7 +207,7 @@ pub async fn get_file_photo(g: &types::G, req: tl::types::InputPhotoFileLocation
         limit: 524288,
     };
     let res = send_req(g, &request).await.unwrap();
-    println!("%%%%%% get_file_photo :  {:#?}", res);
+    // println!("%%%%%% get_file_photo :  {:#?}", res);
 
     std::fs::create_dir_all("./out/").unwrap();
     let name = format!("./out/{}.jpg", req.id);
@@ -224,7 +224,7 @@ pub async fn get_file_photo(g: &types::G, req: tl::types::InputPhotoFileLocation
 }
 
 pub async fn get_file_doc(g: &types::G, req: tl::types::InputDocumentFileLocation) {
-    println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  {:#?}", req);
+    // println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  {:#?}", req);
     let limit = 524288;
     let mut out_buffer = Vec::with_capacity(limit as usize);
     let mut offset = 0;
@@ -304,7 +304,7 @@ pub async fn bench_messages_loading_flood(g: &types::G) {
 
     let mut cnt = 0;
     for i in 1..500 {
-        println!("> {} -- ", i);
+        // println!("> {} -- ", i);
         let mt: tl::enums::messages::Messages = send_req(g, &request).await.unwrap();
 
         match mt {
@@ -337,7 +337,7 @@ async fn process_msgs(g: &types::G, mt: tl::enums::messages::Messages) {
                             // println!(">>> msg fwd \n {:#?}", m2);
                         }
                         if let Some(f) = m2.media.clone() {
-                            println!(">>>> file meida {:#?}", f);
+                            // println!(">>>> file meida {:#?}", f);
                             use tl::enums::MessageMedia;
                             match f {
                                 MessageMedia::Photo(photo) => {
@@ -346,7 +346,7 @@ async fn process_msgs(g: &types::G, mt: tl::enums::messages::Messages) {
                                         match pic {
                                             Photo::Photo(photo) => {
                                                 let p = photo;
-                                                println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ");
+                                                // println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ");
                                                 /*let g=  tl::types::InputFileLocation{
                                                     volume_id: 0,
                                                     local_id: 0,
@@ -373,7 +373,7 @@ async fn process_msgs(g: &types::G, mt: tl::enums::messages::Messages) {
                                         match document {
                                             Document::Document(doc) => {
                                                 let d = doc;
-                                                println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ");
+                                                // println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ");
                                                 /*let g=  tl::types::InputFileLocation{
                                                     volume_id: 0,
                                                     local_id: 0,
@@ -427,7 +427,7 @@ fn process_msgs22(mt: tl::enums::messages::Messages) {
                             // println!(">>> msg fwd \n {:#?}", m2);
                         }
                         if let Some(f) = m2.media.clone() {
-                            println!(">>>> file meida {:?}", f)
+                            // println!(">>>> file meida {:?}", f)
 
                             // app.get_file();
                         }
