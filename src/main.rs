@@ -4,6 +4,9 @@
 #![allow(warnings)]
 #![allow(soft_unstable)]
 
+#[macro_use]
+extern crate lazy_static;
+
 use async_std::task;
 use grammers_client::{AuthorizationError, Client, Config};
 use grammers_session as session;
@@ -16,14 +19,21 @@ mod types;
 
 use std::cell::*;
 
-mod tg;
+mod tg_old;
 mod tg2;
+mod crawl;
+mod db;
+mod con_mgr;
+mod consumer;
+mod tg;
+mod pipe;
+
 // mod threading;
 
 fn main() {
-    task::block_on(run2())
+    task::block_on(crawl::run())
 }
-
+/*
 use std::sync::{Arc, Mutex};
 async fn run2() {
     let mut app = types::App {
@@ -53,3 +63,4 @@ async fn run2() {
     // app.get_channel_by_username().await;
     // app.get_chat_id().await;
 }
+*/

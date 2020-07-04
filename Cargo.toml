@@ -20,6 +20,9 @@ grammers-tl-types = "0.1.0"
 
 mysql = "18.2.0"
 threadpool = "1.8.1"
+crossbeam ="0.7.3"
+lazy_static = "1.4.0"
+
 
 #grammers-tl-types = { path = "../grammers/lib/grammers-tl-types" }
 #grammers-tl-types = { path = "../grammers/lib/grammers-tl-types", features = ["tl-mtproto"] }

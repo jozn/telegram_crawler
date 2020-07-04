@@ -24,7 +24,6 @@ async fn send_req<R: RemoteCall>(g: &types::G, request: &R) -> Result<R::Return,
         .await;
     s
 }
-
 pub async fn get_contacts(g: &types::G) {
     // get contacts
     let request = tl::functions::contacts::GetContacts { hash: 23 };
@@ -109,7 +108,8 @@ pub async fn get_channel_by_username(g: &types::G) {
     let request = tl::functions::contacts::ResolveUsername {
         // username: "Arsshiy_Fortnite".to_string(),
         // username: "badansazizanan".to_string(),
-        username: "arzansaraereza".to_string(),
+        // username: "arzansaraereza".to_string(),
+        username: "pornstar_15".to_string(),
     };
     // let res: tl::enums::ChatFull = self.client.invoke(&request).await.unwrap();
     let res = send_req(g, &request).await.unwrap();

@@ -113,3 +113,39 @@ pub struct Session {}
 
 #[derive(Clone, Debug)]
 pub struct LoginPhone {}
+
+///////////////////////////
+#[derive(Clone, Debug)]
+pub struct ReqSyncChannel {
+    pub channel_id: i32
+}
+
+#[derive(Clone, Debug)]
+pub struct ResSyncChannel {
+    pub channel_info: ChannelInfo,
+}
+
+#[derive(Clone, Debug)]
+pub struct ReqSyncMessages {
+    pub channel_id: i32,
+    pub access_id: i64,
+    pub from_message_id: i64,
+}
+
+#[derive(Clone, Debug)]
+pub struct ResSyncMessages {
+    pub req: ReqSyncMessages,
+    pub messages: Vec<Msg>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ReqResolveUsername {
+    pub username: String
+}
+
+#[derive(Clone, Debug)]
+pub struct ResResolveUsername {
+    pub channel_id: i32,
+    pub access_id: i64,
+}
+
