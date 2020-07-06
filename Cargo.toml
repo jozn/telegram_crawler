@@ -20,7 +20,7 @@ grammers-tl-types = "0.1.0"
 
 mysql = "18.2.0"
 threadpool = "1.8.1"
-
+tokio = { version = "0.2.21", features = ["full"] }
 #grammers-tl-types = { path = "../grammers/lib/grammers-tl-types" }
 #grammers-tl-types = { path = "../grammers/lib/grammers-tl-types", features = ["tl-mtproto"] }
 
