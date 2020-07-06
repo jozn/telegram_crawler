@@ -1,3 +1,4 @@
+
 #![allow(dead_code)]
 #![allow(unused_imports)]
 #![allow(unused_variables)]
@@ -21,17 +22,40 @@ use std::cell::*;
 
 mod tg_old;
 mod tg2;
-mod crawl;
+mod crawl_old;
 mod db;
 mod con_mgr;
 mod consumer;
 mod tg;
 mod pipe;
+mod crawl;
+
 
 // mod threading;
 
-fn main() {
-    task::block_on(crawl::run())
+#[tokio::main]
+async fn main() {
+    // This is running on a core thread.
+    // for i in 0..39 {
+        crawl::crawl_next_user_name().await;
+
+    // }
+    /*let blocking_task = tokio::task::(async || {
+        crawl::crawl_next_user_name().await;
+        // This is running on a blocking thread.
+        // Blocking here is ok.
+    });
+
+    // We can wait for the blocking task like this:
+    // If the blocking task panics, the unwrap below will propagate the
+    // panic.
+    blocking_task.await.unwrap();*/
+}
+
+fn main1() {
+
+    println!("dir {:?}", std::env::current_dir().unwrap());
+    // task::block_on(crawl_old::run())
 }
 /*
 use std::sync::{Arc, Mutex};

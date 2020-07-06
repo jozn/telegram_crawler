@@ -10,6 +10,10 @@ use std::io::Write;
 
 use crate::types;
 
+pub struct Caller {
+    pub client: Client,
+}
+
 async fn send_req<R: RemoteCall>(g: &types::G, request: &R) -> Result<R::Return, InvocationError> {
     let mut m = g.clients.lock().unwrap();
 
@@ -24,6 +28,10 @@ async fn send_req<R: RemoteCall>(g: &types::G, request: &R) -> Result<R::Return,
         .await;
     s
 }
+
+/*async fn send_req2<R: RemoteCall>(g: &mut Client, request: &R) -> Result<R::Return, InvocationError> {
+    g.invoke(request)
+}*/
 
 pub async fn get_contacts(g: &types::G) {
     // get contacts
@@ -105,14 +113,15 @@ pub async fn get_channel_info(g: &types::G) {
     // println!("channel info {:#?}", ci);
 }
 
-pub async fn get_channel_by_username(g: &types::G) {
+pub async fn get_channel_by_username(caller: &mut Caller, username: String) -> Result<types::ChannelByUsernameResult, AuthorizationError > {
     let request = tl::functions::contacts::ResolveUsername {
         // username: "Arsshiy_Fortnite".to_string(),
         // username: "badansazizanan".to_string(),
-        username: "arzansaraereza".to_string(),
+        // username: "arzansaraereza".to_string(),
+        username: username,
     };
     // let res: tl::enums::ChatFull = self.client.invoke(&request).await.unwrap();
-    let res = send_req(g, &request).await.unwrap();
+    let res = caller.client.invoke(&request).await?;
     // println!("resolve username:  {:#?}", res);
 
     use tl::enums::contacts::ResolvedPeer;
@@ -134,13 +143,15 @@ pub async fn get_channel_by_username(g: &types::G) {
                             restricted: c.restricted,
                             megagroup: c.megagroup,
                         };
-                        println!(">>> channel: #{:#?} ", res);
+                        return(Ok(res))
+                        // println!(">>> channel: #{:#?} ", res);
                     }
                     _ => {}
                 }
             }
         }
     }
+    Err(AuthorizationError::IO(std::io::Error::new(std::io::ErrorKind::AddrInUse,"df")))
 }
 
 pub async fn get_chat_id(g: &types::G) {
