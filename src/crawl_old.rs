@@ -38,7 +38,7 @@ pub async fn run() {
 
     });
 
-    consumer::start_new_consumer().join();
+    // consumer::start_new_consumer().join();
 
     // tg::get_messages(&app2).await;
     //

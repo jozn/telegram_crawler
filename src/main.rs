@@ -38,6 +38,7 @@ async fn main() {
     // This is running on a core thread.
     // for i in 0..39 {
         crawl::crawl_next_user_name().await;
+        crawl::crawl_next_channel().await;
 
     // }
     /*let blocking_task = tokio::task::(async || {
@@ -52,10 +53,10 @@ async fn main() {
     blocking_task.await.unwrap();*/
 }
 
-fn main1() {
+fn main5() {
 
     println!("dir {:?}", std::env::current_dir().unwrap());
-    // task::block_on(crawl_old::run())
+    task::block_on(crawl_old::run())
 }
 /*
 use std::sync::{Arc, Mutex};

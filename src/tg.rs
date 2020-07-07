@@ -56,7 +56,7 @@ pub async fn get_dialogs(g: &types::G) {
     // println!("dilagos {:#?}", mt);
 }
 
-pub async fn get_channel_info(g: &types::G) {
+pub async fn get_channel_info(caller: &mut Caller) {
     let request = tl::functions::channels::GetFullChannel {
         channel: tl::enums::InputChannel::Channel(tl::types::InputChannel {
             channel_id: 1072723547,
@@ -64,7 +64,8 @@ pub async fn get_channel_info(g: &types::G) {
         }),
     };
     // let res: tl::enums::ChatFull = self.client.invoke(&request).await.unwrap();
-    let res = send_req(g, &request).await.unwrap();
+    // let res = send_req(g, &request).await.unwrap();
+    let res = caller.client.invoke(&request).await.unwrap();
     // println!("request {:#?}", res);
 
     let mut ci = types::ChannelInfo::default();
@@ -110,7 +111,7 @@ pub async fn get_channel_info(g: &types::G) {
         }
     }
 
-    // println!("channel info {:#?}", ci);
+    println!("channel info {:#?}", ci);
 }
 
 pub async fn get_channel_by_username(caller: &mut Caller, username: String) -> Result<types::ChannelByUsernameResult, AuthorizationError > {

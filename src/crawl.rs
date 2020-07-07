@@ -11,6 +11,16 @@ use tokio::time::delay_for;
 
 use crate::tg;
 
+use std::{sync::Mutex};
+use once_cell::sync::Lazy;
+
+static GLOBAL_DATA: Lazy<Mutex<HashMap<i32, String>>> = Lazy::new(|| {
+    let mut m = HashMap::new();
+    m.insert(13, "Spica".to_string());
+    m.insert(74, "Hoyten".to_string());
+    Mutex::new(m)
+});
+
 // pub mod scheduler {
 pub fn get_next_channel_username() -> String{
     let f = fs::read("./lib/play_gram1/src/tkanal.txt").unwrap();
@@ -26,15 +36,32 @@ pub fn get_next_channel_username() -> String{
 
 pub async fn crawl_next_user_name(){
     let mut caller = get_caller().await;
-    for i in 0..39 {
+    for i in 0..1 {
         let username = get_next_channel_username();
-        delay_for(Duration::from_millis(2000)).await;
+        delay_for(Duration::from_millis(20000)).await;
         let res = tg::get_channel_by_username(&mut caller, username).await;
 
         println!("res >> {:#?}", res);
     }
 
 }
+
+pub async fn crawl_next_channel(){
+    let mut caller = get_caller().await;
+    for i in 0..1 {
+        let username = get_next_channel_username();
+        delay_for(Duration::from_millis(2000)).await;
+        let res = tg::get_channel_info(&mut caller).await;
+
+        println!("res >> {:#?}", res);
+    }
+
+    GLOBAL_DATA.lock().unwrap().insert(3,"sdf".to_string());
+
+    println!("res >> {:#?}", GLOBAL_DATA);
+
+}
+
 
 pub async fn get_caller() -> tg::Caller {
     let con = crate::con_mgr::get_new_session().await.unwrap();
