@@ -2,7 +2,7 @@
 use crossbeam::channel::bounded;
 use crossbeam::channel::{Sender,Receiver};
 
-use crate::{types, tg_old, client_pool, db,consumer};
+use crate::{types, tg_old, client_pool, dbi, consumer};
 
 lazy_static! {
 

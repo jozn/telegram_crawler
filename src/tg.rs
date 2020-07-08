@@ -114,12 +114,12 @@ pub async fn get_channel_info(caller: &mut Caller) {
     println!("channel info {:#?}", ci);
 }
 
-pub async fn get_channel_by_username(caller: &mut Caller, username: String) -> Result<types::ChannelByUsernameResult, AuthorizationError > {
+pub async fn get_channel_by_username(caller: &mut Caller, username: &str) -> Result<types::ChannelByUsernameResult, AuthorizationError > {
     let request = tl::functions::contacts::ResolveUsername {
         // username: "Arsshiy_Fortnite".to_string(),
         // username: "badansazizanan".to_string(),
         // username: "arzansaraereza".to_string(),
-        username: username,
+        username: username.to_string(),
     };
     // let res: tl::enums::ChatFull = self.client.invoke(&request).await.unwrap();
     let res = caller.client.invoke(&request).await?;

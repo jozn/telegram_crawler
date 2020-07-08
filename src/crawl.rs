@@ -9,7 +9,7 @@ use std::ops::Index;
 use std::time::Duration;
 use tokio::time::delay_for;
 
-use crate::tg;
+use crate::{tg,types,db};
 
 use std::{sync::Mutex};
 use once_cell::sync::Lazy;
@@ -36,12 +36,38 @@ pub fn get_next_channel_username() -> String{
 
 pub async fn crawl_next_user_name(){
     let mut caller = get_caller().await;
-    for i in 0..1 {
+    for i in 0..5 {
         let username = get_next_channel_username();
-        delay_for(Duration::from_millis(20000)).await;
-        let res = tg::get_channel_by_username(&mut caller, username).await;
+        let res = tg::get_channel_by_username(&mut caller, &username).await;
 
         println!("res >> {:#?}", res);
+
+        let cud = match res {
+            Ok(r) => {
+                let r2 = r.clone();
+                types::CachedUsernameData{
+                    username: r.username,
+                    channel_id: r.id,
+                    tg_result: Some(r2),
+                    taken: true,
+                    last_checked: 1654,
+                }
+            },
+
+            Err(e) => {
+                types::CachedUsernameData{
+                    username: username.clone(),
+                    channel_id: 0,
+                    tg_result: None,
+                    taken: true,
+                    last_checked: 1654,
+                }
+            }
+        };
+
+        db::save_cached_username(&cud);
+        delay_for(Duration::from_millis(20000)).await;
+
     }
 
 }

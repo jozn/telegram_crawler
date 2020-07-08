@@ -1,4 +1,3 @@
-
 #![allow(dead_code)]
 #![allow(unused_imports)]
 #![allow(unused_variables)]
@@ -23,22 +22,33 @@ use std::cell::*;
 mod tg_old;
 mod tg2;
 mod crawl_old;
-mod db;
+mod dbi;
 mod con_mgr;
 mod consumer;
 mod tg;
 mod pipe;
 mod crawl;
+// mod schema;
+mod db;
+mod utils;
+
 
 
 // mod threading;
 
 #[tokio::main]
 async fn main() {
+    // db::delete_queue_username();
+    db::main2();
+    crawl::crawl_next_user_name().await;
     // This is running on a core thread.
     // for i in 0..39 {
-        crawl::crawl_next_user_name().await;
-        crawl::crawl_next_channel().await;
+    // db::play1();
+    // dbi::sqlite_play();
+
+    // schema::
+        // crawl::crawl_next_user_name().await;
+        // crawl::crawl_next_channel().await;
 
     // }
     /*let blocking_task = tokio::task::(async || {

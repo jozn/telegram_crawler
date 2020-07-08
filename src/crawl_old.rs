@@ -4,7 +4,7 @@ use std::cell::Cell;
 use crossbeam::channel::bounded;
 
 
-use crate::{types, tg_old, client_pool, db,consumer, pipe};
+use crate::{types, tg_old, client_pool, dbi, consumer, pipe};
 pub async fn run() {
     let mut app = types::App {
         login: vec![],

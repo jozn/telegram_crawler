@@ -2,3 +2,4 @@
 /src/arch
 out
 *.session
+*.sqlite3
