@@ -8,71 +8,56 @@ use grammers_tl_types::enums::{Message, MessageEntity};
 use grammers_tl_types::RemoteCall;
 use std::io::Write;
 
-use crate::types;
+use crate::{errors::GenErr, types};
 
 pub struct Caller {
     pub client: Client,
 }
 
-async fn send_req<R: RemoteCall>(g: &types::G, request: &R) -> Result<R::Return, InvocationError> {
-    let mut m = g.clients.lock().unwrap();
-
-    let mut s = m
-        .get_mut()
-        .get_session()
-        .await
-        .unwrap()
-        .lock()
-        .unwrap()
-        .invoke(request)
-        .await;
-    s
+pub struct ReqGetMessages {
+    pub channel_id: i32, // forever54321
+    pub access_hash: i64,
+    pub offset_id: i32,
+    pub offset_date: i32,
+    pub add_offset: i32,
+    pub limit: i32,
+    pub max_id: i32,
+    pub min_id: i32,
+    pub hash: i32,
 }
 
 /*async fn send_req2<R: RemoteCall>(g: &mut Client, request: &R) -> Result<R::Return, InvocationError> {
     g.invoke(request)
 }*/
 
-pub async fn get_contacts(g: &types::G) {
+pub async fn get_configs(caller: &mut Caller) -> Result<tl::enums::Config, GenErr> {
     // get contacts
-    let request = tl::functions::contacts::GetContacts { hash: 23 };
-    let mt: tl::enums::contacts::Contacts = send_req(g, &request).await.unwrap();
-    // println!("contacts {:#?}", mt);
-}
-
-pub async fn get_configs(caller: &mut Caller) {
-    // get contacts
-    let request = tl::functions::help::GetConfig{};
-    let res = caller.client.invoke( &request).await.unwrap();
+    let request = tl::functions::help::GetConfig {};
+    let res = caller.client.invoke(&request).await?;
     println!("config {:#?}", res);
+    Ok(res)
 }
 
-pub async fn get_dialogs(g: &types::G) {
-    // get dialogs
-    // let id = 754247155;
-    let request = tl::functions::messages::GetDialogs {
-        exclude_pinned: false,
-        folder_id: None,
-        offset_date: 0,
-        offset_id: 0,
-        offset_peer: tl::types::InputPeerEmpty {}.into(),
-        limit: 50,
-        hash: 0,
-    };
-    let mt: tl::enums::messages::Dialogs = send_req(g, &request).await.unwrap();
-    // println!("dilagos {:#?}", mt);
-}
-
-pub async fn get_channel_info(caller: &mut Caller) {
-    let request = tl::functions::channels::GetFullChannel {
+pub async fn get_channel_info(
+    caller: &mut Caller,
+    channel_id: i32,
+    access_hash: i64,
+) -> Result<types::ChannelInfo, GenErr> {
+    /*let request = tl::functions::channels::GetFullChannel {
         channel: tl::enums::InputChannel::Channel(tl::types::InputChannel {
             channel_id: 1072723547,
             access_hash: -1615658883512673699,
         }),
+    };*/
+    let request = tl::functions::channels::GetFullChannel {
+        channel: tl::enums::InputChannel::Channel(tl::types::InputChannel {
+            channel_id: channel_id,
+            access_hash: access_hash,
+        }),
     };
     // let res: tl::enums::ChatFull = self.client.invoke(&request).await.unwrap();
     // let res = send_req(g, &request).await.unwrap();
-    let res = caller.client.invoke(&request).await.unwrap();
+    let res = caller.client.invoke(&request).await?;
     // println!("request {:#?}", res);
 
     let mut ci = types::ChannelInfo::default();
@@ -113,18 +98,20 @@ pub async fn get_channel_info(caller: &mut Caller) {
                         ci.restricted = ch.restricted;
                     }
                     _ => {}
-                }
+                };
+                // println!("channel info {:#?}", ci);
+                return Ok(ci);
             }
         }
     }
 
-    println!("channel info {:#?}", ci);
+    Err(GenErr::TGConverter)
 }
 
 pub async fn get_channel_by_username(
     caller: &mut Caller,
     username: &str,
-) -> Result<types::ChannelByUsernameResult, AuthorizationError> {
+) -> Result<types::ChannelByUsernameResult, GenErr> {
     let request = tl::functions::contacts::ResolveUsername {
         // username: "Arsshiy_Fortnite".to_string(),
         // username: "badansazizanan".to_string(),
@@ -162,20 +149,10 @@ pub async fn get_channel_by_username(
             }
         }
     }
-    Err(AuthorizationError::IO(std::io::Error::new(
-        std::io::ErrorKind::AddrInUse,
-        "df",
-    )))
+    Err(GenErr::TGConverter)
 }
 
-pub async fn get_chat_id(g: &types::G) {
-    let request = tl::functions::contacts::GetContactIds { hash: 1149267300 };
-    // let res: tl::enums::ChatFull = self.client.invoke(&request).await.unwrap();
-    let res = send_req(g, &request).await.unwrap();
-    // println!("get_chat_id:  {:#?}", res);
-}
-
-pub async fn get_messages(g: &types::G) {
+pub async fn get_messages(g: &types::G, req: ReqGetMessages) -> Result<Vec<types::Msg>, GenErr> {
     let request = tl::functions::messages::GetHistory {
         /*peer: tl::enums::InputPeer::Channel(tl::types::InputPeerChannel{
             channel_id: 1072723547, // telegraph
@@ -187,26 +164,26 @@ pub async fn get_messages(g: &types::G) {
             access_hash: -6028453276089081451,
         }),*/
         peer: tl::enums::InputPeer::Channel(tl::types::InputPeerChannel {
-            channel_id: 1163672339, // forever54321
-            access_hash: -3665401744061121093,
+            channel_id: req.channel_id, // forever54321
+            access_hash: req.access_hash,
         }),
         /* peer: tl::enums::InputPeer::Channel(tl::types::InputPeerChannel{
             channel_id: 1220769397, // forever54321
             access_hash: -6783224835856251633,
         }),*/
-        offset_id: 0,
-        offset_date: 0,
-        add_offset: 0,
-        limit: 100,
-        max_id: 0,
-        min_id: 0,
-        hash: 0,
+        offset_id: req.offset_id,
+        offset_date: req.offset_date,
+        add_offset: req.add_offset,
+        limit: req.add_offset, //100
+        max_id: req.max_id,
+        min_id: req.min_id,
+        hash: req.hash,
     };
 
-    let mt: tl::enums::messages::Messages = send_req(g, &request).await.unwrap();
+    let mt: tl::enums::messages::Messages = send_req(g, &request).await?;
     // println!("messages #{:#?}", mt);
     // process_msgs(mt, g :&types::G);
-    process_msgs(g, mt).await;
+    process_msgs(g, mt).await
 }
 
 pub async fn get_file(g: &types::G, req: tl::types::InputFileLocation) {
@@ -310,47 +287,10 @@ pub async fn get_file_doc(g: &types::G, req: tl::types::InputDocumentFileLocatio
     };*/
 }
 
-pub async fn bench_messages_loading_flood(g: &types::G) {
-    let request = tl::functions::messages::GetHistory {
-        peer: tl::enums::InputPeer::Channel(tl::types::InputPeerChannel {
-            channel_id: 1355843251,
-            access_hash: -6028453276089081451,
-        }),
-        offset_id: 0,
-        offset_date: 0,
-        add_offset: 0,
-        limit: 2,
-        max_id: 0,
-        min_id: 0,
-        hash: 0,
-    };
-
-    let mt: tl::enums::messages::Messages = send_req(g, &request).await.unwrap();
-
-    let mut cnt = 0;
-    for i in 1..500 {
-        // println!("> {} -- ", i);
-        let mt: tl::enums::messages::Messages = send_req(g, &request).await.unwrap();
-
-        match mt {
-            Messages::ChannelMessages(m) => {
-                for m in m.messages {
-                    match m {
-                        Message::Message(m2) => {
-                            cnt += 1;
-                            // println!("{:?}", m2)
-                            println!("{}", cnt)
-                        }
-                        _ => {}
-                    }
-                }
-            }
-            _ => println!("other form of messages!"),
-        }
-    }
-}
-
-async fn process_msgs(g: &types::G, mt: tl::enums::messages::Messages) {
+async fn process_msgs(
+    g: &types::G,
+    mt: tl::enums::messages::Messages,
+) -> Result<Vec<types::Msg>, GenErr> {
     let mut msgs = vec![];
     let mut urls: Vec<String> = vec![];
     match mt {
@@ -435,7 +375,8 @@ async fn process_msgs(g: &types::G, mt: tl::enums::messages::Messages) {
             }
         }
         _ => println!("other form of messages!"),
-    }
+    };
+    Ok(msgs)
     // println!("msgs {:#?} ", msgs);
     // println!("urls {:#?} ", urls);
 }
@@ -523,3 +464,92 @@ fn extract_urls_from_message_entity(
     };
     urls
 }
+
+////////////////////////////////////// Archives ////////////////////////////////////
+pub async fn get_contacts(g: &types::G) {
+    // get contacts
+    let request = tl::functions::contacts::GetContacts { hash: 23 };
+    let mt: tl::enums::contacts::Contacts = send_req(g, &request).await.unwrap();
+    // println!("contacts {:#?}", mt);
+}
+
+pub async fn get_dialogs(g: &types::G) {
+    // get dialogs
+    // let id = 754247155;
+    let request = tl::functions::messages::GetDialogs {
+        exclude_pinned: false,
+        folder_id: None,
+        offset_date: 0,
+        offset_id: 0,
+        offset_peer: tl::types::InputPeerEmpty {}.into(),
+        limit: 50,
+        hash: 0,
+    };
+    let mt: tl::enums::messages::Dialogs = send_req(g, &request).await.unwrap();
+    // println!("dilagos {:#?}", mt);
+}
+
+pub async fn get_chat_id(g: &types::G) {
+    let request = tl::functions::contacts::GetContactIds { hash: 1149267300 };
+    // let res: tl::enums::ChatFull = self.client.invoke(&request).await.unwrap();
+    let res = send_req(g, &request).await.unwrap();
+    // println!("get_chat_id:  {:#?}", res);
+}
+
+pub async fn bench_messages_loading_flood(g: &types::G) {
+    let request = tl::functions::messages::GetHistory {
+        peer: tl::enums::InputPeer::Channel(tl::types::InputPeerChannel {
+            channel_id: 1355843251,
+            access_hash: -6028453276089081451,
+        }),
+        offset_id: 0,
+        offset_date: 0,
+        add_offset: 0,
+        limit: 2,
+        max_id: 0,
+        min_id: 0,
+        hash: 0,
+    };
+
+    let mt: tl::enums::messages::Messages = send_req(g, &request).await.unwrap();
+
+    let mut cnt = 0;
+    for i in 1..500 {
+        // println!("> {} -- ", i);
+        let mt: tl::enums::messages::Messages = send_req(g, &request).await.unwrap();
+
+        match mt {
+            Messages::ChannelMessages(m) => {
+                for m in m.messages {
+                    match m {
+                        Message::Message(m2) => {
+                            cnt += 1;
+                            // println!("{:?}", m2)
+                            println!("{}", cnt)
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            _ => println!("other form of messages!"),
+        }
+    }
+}
+
+
+async fn send_req<R: RemoteCall>(g: &types::G, request: &R) -> Result<R::Return, InvocationError> {
+    let mut m = g.clients.lock().unwrap();
+
+    let mut s = m
+        .get_mut()
+        .get_session()
+        .await
+        .unwrap()
+        .lock()
+        .unwrap()
+        .invoke(request)
+        .await;
+    s
+}
+
+//////////////////////////////////// Temp bk ////////////////////////////////////////

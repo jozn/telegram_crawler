@@ -41,6 +41,7 @@ async fn main() {
     // utils::insert_tkanals_into_db();
     // db::main2();
     crawl::crawl_config().await;
+    crawl::crawl_next_channel().await;
     // This is running on a core thread.
     // for i in 0..39 {
     // db::play1();

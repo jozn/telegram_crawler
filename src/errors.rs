@@ -6,12 +6,13 @@ use std::error::Error;
 use std::fmt::Display;
 
 #[derive(Debug)]
-enum GenErr {
+pub enum GenErr {
     DB,
     Io,
     TGRPC(RpcError),
+    TGConnection,
     TGAuth(AuthorizationError),
-    Other,
+    TGConverter,
 }
 
 impl Error for GenErr {}
@@ -33,10 +34,19 @@ impl From<AuthorizationError> for GenErr {
         match &tg_err {
             Invocation(inv) => match inv {
                 InvocationError::RPC(rpc) => GenErr::TGRPC(rpc.clone()),
-                _ => GenErr::TGAuth(tg_err),
+                _ => GenErr::TGConnection,
             },
             IO(io) => GenErr::TGAuth(tg_err),
             Gen(gen) => GenErr::TGAuth(tg_err),
+        }
+    }
+}
+
+impl From<InvocationError> for GenErr {
+    fn from(inv: InvocationError) -> GenErr {
+        match inv {
+            InvocationError::RPC(rpc) => GenErr::TGRPC(rpc.clone()),
+            _ => GenErr::TGConnection,
         }
     }
 }

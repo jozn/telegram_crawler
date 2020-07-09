@@ -11,6 +11,7 @@ use tokio::time::delay_for;
 
 use crate::{db, tg, types};
 
+use grammers_client::Client;
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
 
@@ -70,19 +71,19 @@ pub async fn crawl_next_user_name() {
 
 pub async fn crawl_config() {
     let mut caller = get_caller().await;
+    println!("Getting config ... ");
+    delay_for(Duration::from_millis(4000)).await;
+    let res = tg::get_configs(&mut caller).await;
 
-        let res = tg::get_configs(&mut caller).await;
-
-        println!("res >> {:#?}", res);
-
+    println!("res >> {:#?}", res);
 }
 
 pub async fn crawl_next_channel() {
     let mut caller = get_caller().await;
     for i in 0..1 {
         let username = get_next_channel_username();
-        delay_for(Duration::from_millis(2000)).await;
-        let res = tg::get_channel_info(&mut caller).await;
+        delay_for(Duration::from_millis(20)).await;
+        let res = tg::get_channel_info(&mut caller, 1072723547, -1615658883512673699).await;
 
         println!("res >> {:#?}", res);
     }
