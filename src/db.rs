@@ -25,6 +25,10 @@ pub fn save_file() {}
 
 pub fn save_queue_username(username: &str) {
     let con = get_conn();
+    let mut username = username.trim().to_string();
+    if username.is_empty() || !username.is_ascii() {
+        return;
+    }
     let q = "insert into queue_username (username) values (?1)";
     con.execute(q, params![username]).unwrap();
 }
@@ -46,7 +50,9 @@ pub fn save_cached_username(cud: &types::CachedUsernameData) {
 pub fn load_all_cached_usernames() {}
 
 fn get_conn() -> Connection {
-    Connection::open("./crawling.sqlite").unwrap()
+    let con = Connection::open("./crawling.sqlite").unwrap();
+    con.execute("PRAGMA synchronous = OFF", params![]);
+    con
 }
 
 pub fn main2() -> Result<()> {

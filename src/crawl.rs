@@ -36,7 +36,7 @@ pub fn get_next_channel_username() -> String {
 
 pub async fn crawl_next_user_name() {
     let mut caller = get_caller().await;
-    for i in 0..5 {
+    for i in 0..1 {
         let username = get_next_channel_username();
         let res = tg::get_channel_by_username(&mut caller, &username).await;
 
