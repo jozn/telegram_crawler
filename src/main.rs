@@ -38,9 +38,9 @@ mod utils;
 #[tokio::main]
 async fn main() {
     // db::delete_queue_username();
-    utils::insert_tkanals_into_db();
-    db::main2();
-    crawl::crawl_next_user_name().await;
+    // utils::insert_tkanals_into_db();
+    // db::main2();
+    crawl::crawl_config().await;
     // This is running on a core thread.
     // for i in 0..39 {
     // db::play1();

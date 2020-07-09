@@ -40,6 +40,13 @@ pub async fn get_contacts(g: &types::G) {
     // println!("contacts {:#?}", mt);
 }
 
+pub async fn get_configs(caller: &mut Caller) {
+    // get contacts
+    let request = tl::functions::help::GetConfig{};
+    let res = caller.client.invoke( &request).await.unwrap();
+    println!("config {:#?}", res);
+}
+
 pub async fn get_dialogs(g: &types::G) {
     // get dialogs
     // let id = 754247155;

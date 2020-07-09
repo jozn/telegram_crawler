@@ -68,6 +68,15 @@ pub async fn crawl_next_user_name() {
     }
 }
 
+pub async fn crawl_config() {
+    let mut caller = get_caller().await;
+
+        let res = tg::get_configs(&mut caller).await;
+
+        println!("res >> {:#?}", res);
+
+}
+
 pub async fn crawl_next_channel() {
     let mut caller = get_caller().await;
     for i in 0..1 {

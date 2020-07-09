@@ -11,7 +11,7 @@ enum GenErr {
     Io,
     TGRPC(RpcError),
     TGAuth(AuthorizationError),
-    Other(),
+    Other,
 }
 
 impl Error for GenErr {}
@@ -22,7 +22,8 @@ impl Display for GenErr {
         // match *self {
         //
         // };
-        write!(f, "gen err error")
+        // let s = format!("{}")
+        write!(f, "Gen err: {:?}", self)
     }
 }
 
