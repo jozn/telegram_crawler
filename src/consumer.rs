@@ -1,19 +1,16 @@
-
 use grammers_client::{AuthorizationError, Client, Config};
 
 use async_std::task;
+use std::collections::HashMap;
 use std::thread;
 use std::time::Duration;
-use std::collections::HashMap;
-
 
 use crossbeam::channel::bounded;
 
-use crate::{con_mgr,types};
+use crate::{con_mgr, types};
 
 struct Consumer {
     client: Client,
-
 }
 
 lazy_static! {
@@ -34,24 +31,20 @@ impl Consumer {
     pub fn new() -> Consumer {
         let c = task::block_on(con_mgr::get_new_session()).unwrap();
         // let c = con_mgr::get_new_session().await.unwrap();
-        Self {
-            client: c,
-        }
+        Self { client: c }
     }
 }
 
 pub fn start_new_consumer() -> thread::JoinHandle<()> {
-
     let th = thread::spawn(|| {
-       let cons = Consumer::new();
+        let cons = Consumer::new();
 
-        let (sReqSyncChannel,rReqSyncChannel) = bounded::<types::ReqSyncChannel>(10);
-        let (sResSyncChannel,rResSyncChannel) = bounded::<types::ResSyncChannel>(10);
-        let (sReqSyncMessages,rReqSyncMessages) = bounded::<types::ReqSyncMessages>(10);
-        let (sResSyncMessages,rResSyncMessages) = bounded::<types::ResSyncMessages>(10);
-        let (sReqResolveUsername,rReqResolveUsername) = bounded::<types::ReqResolveUsername>(10);
-        let (sResResolveUsername,rResResolveUsername) = bounded::<types::ResResolveUsername>(10);
-
+        let (sReqSyncChannel, rReqSyncChannel) = bounded::<types::ReqSyncChannel>(10);
+        let (sResSyncChannel, rResSyncChannel) = bounded::<types::ResSyncChannel>(10);
+        let (sReqSyncMessages, rReqSyncMessages) = bounded::<types::ReqSyncMessages>(10);
+        let (sResSyncMessages, rResSyncMessages) = bounded::<types::ResSyncMessages>(10);
+        let (sReqResolveUsername, rReqResolveUsername) = bounded::<types::ReqResolveUsername>(10);
+        let (sResResolveUsername, rResResolveUsername) = bounded::<types::ResResolveUsername>(10);
 
         let ms = |ms| Duration::from_millis(ms);
 
@@ -60,9 +53,7 @@ pub fn start_new_consumer() -> thread::JoinHandle<()> {
             // println!("1 ");
             c.recv();
             println!("tock!");
-
         }
-
     });
     th
 }

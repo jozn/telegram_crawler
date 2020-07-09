@@ -1,10 +1,9 @@
-use std::sync::{Arc, Mutex};
 use std::cell::Cell;
+use std::sync::{Arc, Mutex};
 
 use crossbeam::channel::bounded;
 
-
-use crate::{types, tg_old, client_pool, dbi, consumer, pipe};
+use crate::{client_pool, consumer, dbi, pipe, tg_old, types};
 pub async fn run() {
     let mut app = types::App {
         login: vec![],
@@ -17,33 +16,26 @@ pub async fn run() {
     let app2 = Arc::new(app);
     // tg_old::get_contacts(&app2).await;
 
-    let (sReqSyncChannel,rReqSyncChannel) = bounded::<types::ReqSyncChannel>(10);
-    let (sResSyncChannel,rResSyncChannel) = bounded::<types::ResSyncChannel>(10);
-    let (sReqSyncMessages,rReqSyncMessages) = bounded::<types::ReqSyncMessages>(10);
-    let (sResSyncMessages,rResSyncMessages) = bounded::<types::ResSyncMessages>(10);
-    let (sReqResolveUsername,rReqResolveUsername) = bounded::<types::ReqResolveUsername>(10);
-    let (sResResolveUsername,rResResolveUsername) = bounded::<types::ResResolveUsername>(10);
+    let (sReqSyncChannel, rReqSyncChannel) = bounded::<types::ReqSyncChannel>(10);
+    let (sResSyncChannel, rResSyncChannel) = bounded::<types::ResSyncChannel>(10);
+    let (sReqSyncMessages, rReqSyncMessages) = bounded::<types::ReqSyncMessages>(10);
+    let (sResSyncMessages, rResSyncMessages) = bounded::<types::ResSyncMessages>(10);
+    let (sReqResolveUsername, rReqResolveUsername) = bounded::<types::ReqResolveUsername>(10);
+    let (sResResolveUsername, rResResolveUsername) = bounded::<types::ResResolveUsername>(10);
 
-    use std::thread::{spawn,Thread};
+    use std::thread::{spawn, Thread};
 
-    sReqSyncChannel.send(types::ReqSyncChannel{
-        channel_id: 0
-    });
+    sReqSyncChannel.send(types::ReqSyncChannel { channel_id: 0 });
 
-    sReqSyncChannel.send(types::ReqSyncChannel{
-        channel_id: 0
-    });
+    sReqSyncChannel.send(types::ReqSyncChannel { channel_id: 0 });
 
-    spawn(move || {
-
-    });
+    spawn(move || {});
 
     // consumer::start_new_consumer().join();
 
     // tg::get_messages(&app2).await;
     //
     // threading::run();
-
 
     // tg2::get_contacts( app2.clone()).await;
     // tg::get_contacts(&app2).await;

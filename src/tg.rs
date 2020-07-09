@@ -114,7 +114,10 @@ pub async fn get_channel_info(caller: &mut Caller) {
     println!("channel info {:#?}", ci);
 }
 
-pub async fn get_channel_by_username(caller: &mut Caller, username: &str) -> Result<types::ChannelByUsernameResult, AuthorizationError > {
+pub async fn get_channel_by_username(
+    caller: &mut Caller,
+    username: &str,
+) -> Result<types::ChannelByUsernameResult, AuthorizationError> {
     let request = tl::functions::contacts::ResolveUsername {
         // username: "Arsshiy_Fortnite".to_string(),
         // username: "badansazizanan".to_string(),
@@ -144,7 +147,7 @@ pub async fn get_channel_by_username(caller: &mut Caller, username: &str) -> Res
                             restricted: c.restricted,
                             megagroup: c.megagroup,
                         };
-                        return(Ok(res))
+                        return (Ok(res));
                         // println!(">>> channel: #{:#?} ", res);
                     }
                     _ => {}
@@ -152,7 +155,10 @@ pub async fn get_channel_by_username(caller: &mut Caller, username: &str) -> Res
             }
         }
     }
-    Err(AuthorizationError::IO(std::io::Error::new(std::io::ErrorKind::AddrInUse,"df")))
+    Err(AuthorizationError::IO(std::io::Error::new(
+        std::io::ErrorKind::AddrInUse,
+        "df",
+    )))
 }
 
 pub async fn get_chat_id(g: &types::G) {

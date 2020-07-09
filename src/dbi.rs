@@ -1,12 +1,11 @@
-
-use crate::{types};
+use crate::types;
 
 use cdrs::authenticators::NoneAuthenticator;
-use cdrs::cluster::session::{new as new_session};
+use cdrs::cluster::session::new as new_session;
 use cdrs::cluster::{ClusterTcpConfig, NodeTcpConfigBuilder};
 use cdrs::load_balancing::RoundRobin;
-use cdrs::query::*;
 use cdrs::query;
+use cdrs::query::*;
 // use sqlite;
 
 pub trait DBI_old {
@@ -17,10 +16,9 @@ pub trait DBI_old {
 
     fn load_sessions();
     fn save_session();
-
 }
 
-pub trait DB{
+pub trait DB {
     fn load_channels() -> Vec<types::ChannelInfo>;
     fn load_seed_usernames() -> Vec<String>;
     fn save_channel();
@@ -28,7 +26,6 @@ pub trait DB{
 
     fn load_sessions();
     fn save_session();
-
 }
 
 /*
@@ -43,7 +40,7 @@ pub fn play1() {
     no_compression.query(create_ks).expect("Keyspace create error");
 
     let s = "INSERT INTO test_ks.channels
-	(id)
+    (id)
 VALUES
 (1 ); ";
 

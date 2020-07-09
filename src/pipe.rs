@@ -1,20 +1,20 @@
-
 use crossbeam::channel::bounded;
-use crossbeam::channel::{Sender,Receiver};
+use crossbeam::channel::{Receiver, Sender};
 
-use crate::{types, tg_old, client_pool, dbi, consumer};
+use crate::{client_pool, consumer, dbi, tg_old, types};
 
 lazy_static! {
-
-    pub static ref SEND_CHENNEL: (Sender<types::ReqSyncChannel>,Receiver<types::ReqSyncChannel>) = bounded::<types::ReqSyncChannel>(10);
-
+    pub static ref SEND_CHENNEL: (
+        Sender<types::ReqSyncChannel>,
+        Receiver<types::ReqSyncChannel>
+    ) = bounded::<types::ReqSyncChannel>(10);
 }
-
 
 macro_rules! new_ch {
     ($ch:ident) => {
         lazy_static! {
-            pub static ref $ch: (Sender<types::$ch >,Receiver<types::$ch>) = bounded::<types::$ch>(10);
+            pub static ref $ch: (Sender<types::$ch>, Receiver<types::$ch>) =
+                bounded::<types::$ch>(10);
         }
     };
 }

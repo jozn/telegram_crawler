@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex};
 pub type G = Arc<App>;
 
 use crate::client_pool;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 pub struct App {
     pub login: Vec<LoginPhone>,
@@ -23,10 +23,10 @@ pub struct App {
     pub clients: Mutex<Cell<client_pool::ClientPool>>,
 }
 
-#[derive(Clone,Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct MsgReplayTo {}
 
-#[derive(Clone,Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct MsgForwarded {
     pub from_id: i32,
     pub from_name: String,
@@ -38,7 +38,7 @@ pub struct MsgForwarded {
     pub saved_from_msg_id: i32,
 }
 
-#[derive(Clone,Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Msg {
     pub silent: bool,
     pub post: bool,
@@ -63,19 +63,19 @@ pub struct Msg {
     // raw: tl::types::Message,
 }
 
-#[derive(Clone,Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum MediaType {}
 
-#[derive(Clone,Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Media {}
 
-#[derive(Clone,Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ChannelSpace {
     pub info: ChannelInfo,
     pub msgs: HashMap<u32, Msg>,
 }
 
-#[derive(Clone,Serialize, Deserialize, Default, Debug)]
+#[derive(Clone, Serialize, Deserialize, Default, Debug)]
 pub struct ChannelInfo {
     pub id: i32,
     pub title: String,
@@ -93,7 +93,7 @@ pub struct ChannelInfo {
     pub megagroup: bool,
 }
 
-#[derive(Clone,Serialize, Deserialize, Default, Debug)]
+#[derive(Clone, Serialize, Deserialize, Default, Debug)]
 pub struct ChannelByUsernameResult {
     pub id: i32,
     pub title: String,
@@ -106,16 +106,16 @@ pub struct ChannelByUsernameResult {
     pub megagroup: bool,
 }
 
-#[derive(Clone,Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct DC {}
 
-#[derive(Clone,Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Session {}
 
-#[derive(Clone,Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct LoginPhone {}
 /////////// Sqlite ///////
-#[derive(Clone,Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct CachedUsernameData {
     pub username: String,
     pub channel_id: i32, // we do not care about others: super groups, users,...
@@ -124,40 +124,37 @@ pub struct CachedUsernameData {
     pub last_checked: u32,
 }
 
-
-
 ///////////////////////////
-#[derive(Clone,Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ReqSyncChannel {
-    pub channel_id: i32
+    pub channel_id: i32,
 }
 
-#[derive(Clone,Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ResSyncChannel {
     pub channel_info: ChannelInfo,
 }
 
-#[derive(Clone,Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ReqSyncMessages {
     pub channel_id: i32,
     pub access_id: i64,
     pub from_message_id: i64,
 }
 
-#[derive(Clone,Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ResSyncMessages {
     pub req: ReqSyncMessages,
     pub messages: Vec<Msg>,
 }
 
-#[derive(Clone,Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ReqResolveUsername {
-    pub username: String
+    pub username: String,
 }
 
-#[derive(Clone,Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ResResolveUsername {
     pub channel_id: i32,
     pub access_id: i64,
 }
-

@@ -19,20 +19,18 @@ mod types;
 
 use std::cell::*;
 
-mod tg_old;
-mod tg2;
-mod crawl_old;
-mod dbi;
 mod con_mgr;
 mod consumer;
-mod tg;
-mod pipe;
 mod crawl;
+mod crawl_old;
+mod dbi;
+mod pipe;
+mod tg;
+mod tg2;
+mod tg_old;
 // mod schema;
 mod db;
 mod utils;
-
-
 
 // mod threading;
 
@@ -47,8 +45,8 @@ async fn main() {
     // dbi::sqlite_play();
 
     // schema::
-        // crawl::crawl_next_user_name().await;
-        // crawl::crawl_next_channel().await;
+    // crawl::crawl_next_user_name().await;
+    // crawl::crawl_next_channel().await;
 
     // }
     /*let blocking_task = tokio::task::(async || {
@@ -64,7 +62,6 @@ async fn main() {
 }
 
 fn main5() {
-
     println!("dir {:?}", std::env::current_dir().unwrap());
     task::block_on(crawl_old::run())
 }
