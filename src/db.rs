@@ -1,5 +1,5 @@
 // use sqlite;
-use crate::types;
+use crate::{types, utils};
 
 use rusqlite::{params, Connection, Result};
 
@@ -26,9 +26,10 @@ pub fn save_file() {}
 pub fn save_queue_username(username: &str) {
     let con = get_conn();
     let mut username = username.trim().to_string();
-    if username.is_empty() || !username.is_ascii() {
+    if !utils::is_valid_username_pattern(&username) {
         return;
     }
+
     let q = "insert into queue_username (username) values (?1)";
     con.execute(q, params![username]).unwrap();
 }
@@ -49,12 +50,16 @@ pub fn save_cached_username(cud: &types::CachedUsernameData) {
 
 pub fn load_all_cached_usernames() {}
 
+// todo: make it lazy static
 fn get_conn() -> Connection {
     let con = Connection::open("./crawling.sqlite").unwrap();
     con.execute("PRAGMA synchronous = OFF", params![]);
+    con.execute("PRAGMA journal_mode = MEMORY", params![]);
+    con.execute("PRAGMA temp_store = MEMORY", params![]);
     con
 }
 
+//dep
 pub fn main2() -> Result<()> {
     let conn = Connection::open_in_memory()?;
 

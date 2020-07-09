@@ -30,6 +30,7 @@ mod tg2;
 mod tg_old;
 // mod schema;
 mod db;
+mod errors;
 mod utils;
 
 // mod threading;
