@@ -20,17 +20,16 @@ mod types;
 use std::cell::*;
 
 mod con_mgr;
+mod config;
 mod crawl;
-mod tg;
 mod db;
 mod errors;
+mod tg;
 mod utils;
-mod config;
-
 
 #[tokio::main]
 async fn main() {
-    crawl::crawl_config().await;
-    crawl::crawl_next_channel().await;
-
+    crawl::crawl_next_username().await;
+    // crawl::crawl_config().await;
+    // crawl::crawl_next_channel().await;
 }

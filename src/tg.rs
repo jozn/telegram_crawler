@@ -239,7 +239,6 @@ pub async fn get_file_doc(g: &types::G, req: tl::types::InputDocumentFileLocatio
     let name = format!("./out/{}.file", req.id);
     let mut f = std::fs::File::create(name).unwrap();
     f.write(&out_buffer);
-
 }
 
 async fn process_msgs(

@@ -1,7 +1,7 @@
 // use sqlite;
-use crate::{types, utils};
+use crate::{errors::GenErr, types, utils};
 
-use rusqlite::{params, Connection, Result};
+use rusqlite::{params, Connection, Result, NO_PARAMS};
 
 #[derive(Debug)]
 struct Person {
@@ -34,10 +34,25 @@ pub fn save_queue_username(username: &str) {
     con.execute(q, params![username]).unwrap();
 }
 
+pub fn get_next_queue_username() -> Result<String, GenErr> {
+    let con = get_conn();
+    let mut s = "".to_string();
+
+    let q = "SELECT username FROM queue_username ORDER BY RANDOM() LIMIT 1";
+
+    let mut stmt = con.prepare(q)?;
+    let m = stmt.query_row(params![], |row| {
+        s = row.get(0)?;
+        Ok(s)
+    })?;
+
+    Ok(m)
+}
+
 pub fn delete_queue_username(username: &str) {
     let con = get_conn();
     let q = "delete form queue_username where username = ?1";
-    con.execute(q, params![username]).unwrap();
+    con.execute(q, params![username]);
 }
 
 pub fn save_cached_username(cud: &types::CachedUsernameData) {
@@ -59,39 +74,19 @@ fn get_conn() -> Connection {
     con
 }
 
-//dep
-pub fn main2() -> Result<()> {
-    let conn = Connection::open_in_memory()?;
+///////////////// Archives ////////////////
 
-    conn.execute(
-        "CREATE TABLE person (
-                  id              INTEGER PRIMARY KEY,
-                  name            TEXT NOT NULL,
-                  data            BLOB
-                  )",
-        params![],
-    )?;
-    let me = Person {
-        id: 0,
-        name: "Steven".to_string(),
-        data: None,
-    };
-    conn.execute(
-        "INSERT INTO person (name, data) VALUES (?1, ?2)",
-        params![me.name, me.data],
-    )?;
+pub fn get_next_queue_username_bk() -> Result<String, GenErr> {
+    let con = get_conn();
+    let mut s = "".to_string();
 
-    let mut stmt = conn.prepare("SELECT id, name, data FROM person")?;
-    let person_iter = stmt.query_map(params![], |row| {
-        Ok(Person {
-            id: row.get(0)?,
-            name: row.get(1)?,
-            data: row.get(2)?,
-        })
-    })?;
+    let q = "SELECT username FROM queue_username ORDER BY RANDOM() LIMIT 1";
 
-    for person in person_iter {
-        println!("Found person {:?}", person.unwrap());
+    let mut stmt = con.prepare(q)?;
+    let mut rows = stmt.query(NO_PARAMS)?;
+    while let Some(row) = rows.next()? {
+        s = row.get(0)?;
     }
-    Ok(())
+
+    Ok(s)
 }

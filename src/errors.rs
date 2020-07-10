@@ -1,13 +1,14 @@
 use grammers_client::{AuthorizationError, Client, Config};
 use grammers_mtproto::errors::RpcError;
 use grammers_mtsender::InvocationError;
+use rusqlite;
 use serde::export::Formatter;
 use std::error::Error;
 use std::fmt::Display;
 
 #[derive(Debug)]
 pub enum GenErr {
-    DB,
+    DB(rusqlite::Error),
     Io,
     TGRPC(RpcError),
     TGConnection,
@@ -48,5 +49,11 @@ impl From<InvocationError> for GenErr {
             InvocationError::RPC(rpc) => GenErr::TGRPC(rpc.clone()),
             _ => GenErr::TGConnection,
         }
+    }
+}
+
+impl From<rusqlite::Error> for GenErr {
+    fn from(e: rusqlite::Error) -> GenErr {
+        GenErr::DB(e)
     }
 }

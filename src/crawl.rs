@@ -9,7 +9,7 @@ use std::ops::Index;
 use std::time::Duration;
 use tokio::time::delay_for;
 
-use crate::{db, tg, types};
+use crate::{db, tg, types, utils};
 
 use grammers_client::Client;
 use once_cell::sync::Lazy;
@@ -22,23 +22,10 @@ static GLOBAL_DATA: Lazy<Mutex<HashMap<i32, String>>> = Lazy::new(|| {
     Mutex::new(m)
 });
 
-// pub mod scheduler {
-pub fn get_next_channel_username() -> String {
-    let f = fs::read("./lib/play_gram1/src/tkanal.txt").unwrap();
-    // let s = f.to_bytes().to_str().unwrap();
-    let s = String::from_utf8(f).unwrap();
-    let arr: Vec<&str> = s.split("\n").collect();
-    let rnd = rand::thread_rng().gen_range(0, arr.len());
-
-    let kanal = arr.index(rnd).to_string();
-
-    kanal
-}
-
-pub async fn crawl_next_user_name() {
+pub async fn crawl_next_username() {
     let mut caller = get_caller().await;
     for i in 0..1 {
-        let username = get_next_channel_username();
+        let username = db::get_next_queue_username().unwrap();
         let res = tg::get_channel_by_username(&mut caller, &username).await;
 
         println!("res >> {:#?}", res);
@@ -81,7 +68,7 @@ pub async fn crawl_config() {
 pub async fn crawl_next_channel() {
     let mut caller = get_caller().await;
     for i in 0..1 {
-        let username = get_next_channel_username();
+        // let username = get_next_channel_username();
         delay_for(Duration::from_millis(20)).await;
         let res = tg::get_channel_info(&mut caller, 1072723547, -1615658883512673699).await;
 
