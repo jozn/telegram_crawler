@@ -58,7 +58,7 @@ pub fn delete_queue_username(username: &str) {
 pub fn save_cached_username(cud: &types::CachedUsernameData) {
     let con = get_conn();
     let bin = serde_json::to_string(cud).unwrap();
-    let q = "insert into cached_username (username, channel_id ,data) values (?1,?2,?3)";
+    let q = "REPLACE into cached_username (username, channel_id ,data) values (?1,?2,?3)";
     con.execute(q, params![&cud.username, cud.channel_id, bin])
         .unwrap();
 }

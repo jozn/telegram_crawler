@@ -15,36 +15,38 @@ use grammers_client::Client;
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
 
-pub async fn crawl_next_username() {
+pub async fn crawl_next_username() -> Result<(), GenErr> {
     let mut caller = get_caller().await;
-    let username = db::get_next_queue_username().unwrap();
-    let username = "flip_net".to_string();
+    let username = db::get_next_queue_username()?;
+    // let username = "flip_net".to_string();
 
-    let res = tg::get_channel_by_username(&mut caller, &username).await;
+    let rpc_res = tg::get_channel_by_username(&mut caller, &username).await;
 
-    println!("res >> {:#?}", res);
+    println!("res >> {:#?}", rpc_res);
 
     // Save free username [free = USERNAME_NOT_OCCUPIED or registered for personal users ]
-    let save_free = || {
+    let save_free = |taken: bool| {
         let cud = types::CachedUsernameData {
             username: username.clone(),
             channel_id: 0,
-            tg_result: None,
-            taken: true,
-            last_checked: 1654,
+            channel_info: None,
+            taken: taken,
+            last_checked: utils::time_now_sec(),
         };
         db::save_cached_username(&cud);
     };
 
-    let cud = match res {
-        Ok(r) => {
-            let r2 = r.clone();
+    let cud = match rpc_res {
+        Ok(chan_res) => {
+            let chanel_info = tg::get_channel_info(&mut caller, chan_res.id, chan_res.access_hash).await?;
+            let channel_info_clone = chanel_info.clone();
+
             let cud = types::CachedUsernameData {
-                username: r.username,
-                channel_id: r.id,
-                tg_result: Some(r2),
+                username: chanel_info.username,
+                channel_id: chanel_info.id,
+                channel_info: Some(channel_info_clone),
                 taken: true,
-                last_checked: 1654,
+                last_checked: utils::time_now_sec(),
             };
             db::save_cached_username(&cud);
         }
@@ -52,18 +54,19 @@ pub async fn crawl_next_username() {
         Err(e) => match e {
             GenErr::TGRPC(rpc) => {
                 if rpc.code == 400 && &rpc.name == "USERNAME_NOT_OCCUPIED" {
-                    save_free();
+                    save_free(false);
                 }
             }
             GenErr::TGConverter => {
-                // This means username is used by other places: personal accounts
-                save_free();
+                // This means username is used in other places: personal accounts,...
+                save_free(true);
             }
             _ => {}
         },
     };
 
     delay_for(Duration::from_millis(20000)).await;
+    Ok(())
 }
 
 pub async fn crawl_config() {

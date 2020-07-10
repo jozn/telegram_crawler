@@ -67,6 +67,12 @@ pub fn read_tkanal_channels_rand() -> String {
     kanal
 }
 
+pub fn time_now_sec() -> u32 {
+    let t = std::time::SystemTime::now();
+    t.duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap().as_secs() as u32
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;

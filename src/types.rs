@@ -119,7 +119,8 @@ pub struct LoginPhone {}
 pub struct CachedUsernameData {
     pub username: String,
     pub channel_id: i32, // we do not care about others: super groups, users,...
-    pub tg_result: Option<ChannelByUsernameResult>,
+    // pub tg_result: Option<ChannelByUsernameResult>,
+    pub channel_info: Option<ChannelInfo>,
     pub taken: bool,
     pub last_checked: u32,
 }
