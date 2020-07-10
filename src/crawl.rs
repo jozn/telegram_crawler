@@ -34,6 +34,7 @@ pub async fn crawl_next_username() -> Result<(), GenErr> {
             last_checked: utils::time_now_sec(),
         };
         db::save_cached_username(&cud);
+        db::delete_queue_username(&username);
     };
 
     let cud = match rpc_res {
@@ -49,6 +50,7 @@ pub async fn crawl_next_username() -> Result<(), GenErr> {
                 last_checked: utils::time_now_sec(),
             };
             db::save_cached_username(&cud);
+            db::delete_queue_username(&username);
         }
 
         Err(e) => match e {
@@ -65,7 +67,7 @@ pub async fn crawl_next_username() -> Result<(), GenErr> {
         },
     };
 
-    delay_for(Duration::from_millis(20000)).await;
+    delay_for(Duration::from_millis(5000)).await;
     Ok(())
 }
 
@@ -77,6 +79,43 @@ pub async fn crawl_config() {
 
     println!("res >> {:#?}", res);
 }
+
+pub async fn get_caller() -> tg::Caller {
+    let con = crate::con_mgr::get_new_session().await.unwrap();
+    let caller = tg::Caller { client: con };
+    caller
+}
+
+pub async fn crawl_next_channel_messages() -> Result<(), GenErr> {
+    let mut caller = get_caller().await;
+    let cd = db::get_random_cached_channel()?;
+    if let Some(ci) = cd.channel_info {
+        println!("senfing ");
+
+        let req = tg::ReqGetMessages{
+            channel_id: ci.id,
+            access_hash: ci.access_hash,
+            offset_id: 0,
+            offset_date: 0,
+            add_offset: 0,
+            limit: 3,
+            max_id: 0,
+            min_id: 0,
+            hash: 0
+        };
+
+        let rpc_res = tg::get_messages(&mut caller,req ).await;
+
+        println!("channel: {:#?} \n\n  res >> {:#?}",ci, rpc_res);
+
+        delay_for(Duration::from_millis(5000)).await;
+    }
+
+
+    Ok(())
+}
+
+//////////////////////////// Archive /////////////////////////////
 
 pub async fn crawl_next_channel() {
     let mut caller = get_caller().await;
@@ -93,13 +132,6 @@ pub async fn crawl_next_channel() {
     println!("res >> {:#?}", GLOBAL_DATA);
 }
 
-pub async fn get_caller() -> tg::Caller {
-    let con = crate::con_mgr::get_new_session().await.unwrap();
-    let caller = tg::Caller { client: con };
-    caller
-}
-
-//////////////////////////// Archive /////////////////////////////
 
 static GLOBAL_DATA: Lazy<Mutex<HashMap<i32, String>>> = Lazy::new(|| {
     let mut m = HashMap::new();

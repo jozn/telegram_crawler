@@ -14,6 +14,7 @@ pub enum GenErr {
     TGConnection,
     TGAuth(AuthorizationError),
     TGConverter,
+    JSON(serde_json::Error),
 }
 
 impl Error for GenErr {}
@@ -85,3 +86,11 @@ impl From<rusqlite::Error> for GenErr {
         GenErr::DB(e)
     }
 }
+
+impl From<serde_json::Error> for GenErr {
+    fn from(e: serde_json::Error) -> GenErr {
+        GenErr::JSON(e)
+    }
+}
+
+

@@ -70,12 +70,7 @@ pub async fn get_channel_info(
                     Chat::Channel(ch) => {
                         ci.id = ch.id;
                         ci.title = ch.title.clone();
-                        ci.username = ch
-                            .username
-                            .clone()
-                            .as_ref()
-                            .unwrap_or(&"".to_string())
-                            .clone();
+                        ci.username = ch.username.clone().unwrap_or("".to_string());
                         ci.access_hash = ch.access_hash.unwrap_or(0);
                         ci.date = ch.date;
                         ci.version = ch.version;
@@ -85,7 +80,7 @@ pub async fn get_channel_info(
                     }
                     _ => {}
                 };
-                // println!("channel info {:#?}", ci);
+                println!("channel info {:#?}", ci);
                 return Ok(ci);
             }
         }
@@ -134,27 +129,28 @@ pub async fn get_channel_by_username(
     Err(GenErr::TGConverter)
 }
 
-pub async fn get_messages(g: &types::G, req: ReqGetMessages) -> Result<Vec<types::Msg>, GenErr> {
+pub async fn get_messages(caller: &mut Caller, req: ReqGetMessages) -> Result<Vec<types::Msg>, GenErr> {
     let request = tl::functions::messages::GetHistory {
         peer: tl::enums::InputPeer::Channel(tl::types::InputPeerChannel {
-            channel_id: req.channel_id, // forever54321
+            channel_id: req.channel_id,
             access_hash: req.access_hash,
         }),
         offset_id: req.offset_id,
         offset_date: req.offset_date,
         add_offset: req.add_offset,
-        limit: req.add_offset, //100
+        limit: req.limit, //100
         max_id: req.max_id,
         min_id: req.min_id,
         hash: req.hash,
     };
 
-    let mt: tl::enums::messages::Messages = send_req(g, &request).await?;
-    // println!("messages #{:#?}", mt);
-    process_msgs(g, mt).await
+    // let mt: tl::enums::messages::Messages = send_req(g, &request).await?;
+    let mt: tl::enums::messages::Messages = caller.client.invoke( &request).await?;
+    println!("messages #{:#?}", mt);
+    process_msgs(caller, mt).await
 }
 
-pub async fn get_file(g: &types::G, req: tl::types::InputFileLocation) {
+pub async fn get_file(caller: &mut Caller, req: tl::types::InputFileLocation) {
     let request = tl::functions::upload::GetFile {
         precise: false,
         cdn_supported: false,
@@ -162,11 +158,11 @@ pub async fn get_file(g: &types::G, req: tl::types::InputFileLocation) {
         offset: 0,
         limit: 524288,
     };
-    let res = send_req(g, &request).await.unwrap();
+    let res = send_req(caller, &request).await.unwrap();
     // println!("get_chat_id:  {:#?}", res);
 }
 
-pub async fn get_file_photo(g: &types::G, req: tl::types::InputPhotoFileLocation) {
+pub async fn get_file_photo(caller: &mut Caller, req: tl::types::InputPhotoFileLocation) {
     // println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  {:#?}", req);
     let request = tl::functions::upload::GetFile {
         precise: false,
@@ -175,7 +171,7 @@ pub async fn get_file_photo(g: &types::G, req: tl::types::InputPhotoFileLocation
         offset: 0,
         limit: 524288,
     };
-    let res = send_req(g, &request).await.unwrap();
+    let res = send_req(caller, &request).await.unwrap();
 
     std::fs::create_dir_all("./out/").unwrap();
     let name = format!("./out/{}.jpg", req.id);
@@ -191,7 +187,7 @@ pub async fn get_file_photo(g: &types::G, req: tl::types::InputPhotoFileLocation
     };
 }
 
-pub async fn get_file_doc(g: &types::G, req: tl::types::InputDocumentFileLocation) {
+pub async fn get_file_doc(caller: &mut Caller, req: tl::types::InputDocumentFileLocation) {
     let limit = 524288;
     let mut out_buffer = Vec::with_capacity(limit as usize);
     let mut offset = 0;
@@ -204,7 +200,7 @@ pub async fn get_file_doc(g: &types::G, req: tl::types::InputDocumentFileLocatio
             offset: offset,
             limit: limit,
         };
-        let res = send_req(g, &request).await;
+        let res = send_req(caller, &request).await;
 
         match res {
             Ok(res) => {
@@ -242,7 +238,7 @@ pub async fn get_file_doc(g: &types::G, req: tl::types::InputDocumentFileLocatio
 }
 
 async fn process_msgs(
-    g: &types::G,
+    caller: &mut Caller,
     mt: tl::enums::messages::Messages,
 ) -> Result<Vec<types::Msg>, GenErr> {
     let mut msgs = vec![];
@@ -271,7 +267,7 @@ async fn process_msgs(
                                                     file_reference: p.file_reference,
                                                     thumb_size: "w".to_string(),
                                                 };
-                                                get_file_photo(g, inp).await;
+                                                get_file_photo(caller, inp).await;
                                             }
                                             _ => {}
                                         }
@@ -290,7 +286,7 @@ async fn process_msgs(
                                                     file_reference: d.file_reference,
                                                     thumb_size: "w".to_string(),
                                                 };
-                                                get_file_doc(g, f).await;
+                                                get_file_doc(caller, f).await;
                                             }
                                             _ => {}
                                         }
@@ -405,7 +401,7 @@ fn extract_urls_from_message_entity(
 
 pub async fn get_contacts(g: &types::G) {
     let request = tl::functions::contacts::GetContacts { hash: 23 };
-    let mt: tl::enums::contacts::Contacts = send_req(g, &request).await.unwrap();
+    let mt: tl::enums::contacts::Contacts = send_req_dep(g, &request).await.unwrap();
     // println!("contacts {:#?}", mt);
 }
 
@@ -419,13 +415,13 @@ pub async fn get_dialogs(g: &types::G) {
         limit: 50,
         hash: 0,
     };
-    let mt: tl::enums::messages::Dialogs = send_req(g, &request).await.unwrap();
+    let mt: tl::enums::messages::Dialogs = send_req_dep(g, &request).await.unwrap();
     // println!("dilagos {:#?}", mt);
 }
 
 pub async fn get_chat_id(g: &types::G) {
     let request = tl::functions::contacts::GetContactIds { hash: 1149267300 };
-    let res = send_req(g, &request).await.unwrap();
+    let res = send_req_dep(g, &request).await.unwrap();
     // println!("get_chat_id:  {:#?}", res);
 }
 
@@ -444,12 +440,12 @@ pub async fn bench_messages_loading_flood(g: &types::G) {
         hash: 0,
     };
 
-    let mt: tl::enums::messages::Messages = send_req(g, &request).await.unwrap();
+    let mt: tl::enums::messages::Messages = send_req_dep(g, &request).await.unwrap();
 
     let mut cnt = 0;
     for i in 1..500 {
         // println!("> {} -- ", i);
-        let mt: tl::enums::messages::Messages = send_req(g, &request).await.unwrap();
+        let mt: tl::enums::messages::Messages = send_req_dep(g, &request).await.unwrap();
 
         match mt {
             Messages::ChannelMessages(m) => {
@@ -469,7 +465,11 @@ pub async fn bench_messages_loading_flood(g: &types::G) {
     }
 }
 
-async fn send_req<R: RemoteCall>(g: &types::G, request: &R) -> Result<R::Return, InvocationError> {
+async fn send_req<R: RemoteCall>(caller: &mut Caller, request: &R) -> Result<R::Return, InvocationError> {
+    caller.client.invoke(request).await
+}
+
+async fn send_req_dep<R: RemoteCall>(g: &types::G, request: &R) -> Result<R::Return, InvocationError> {
     let mut m = g.clients.lock().unwrap();
 
     let mut s = m
