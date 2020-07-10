@@ -9,51 +9,61 @@ use std::ops::Index;
 use std::time::Duration;
 use tokio::time::delay_for;
 
-use crate::{db, tg, types, utils};
+use crate::{db, errors::GenErr, tg, types, utils};
 
 use grammers_client::Client;
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
 
-static GLOBAL_DATA: Lazy<Mutex<HashMap<i32, String>>> = Lazy::new(|| {
-    let mut m = HashMap::new();
-    m.insert(13, "Spica".to_string());
-    m.insert(74, "Hoyten".to_string());
-    Mutex::new(m)
-});
-
 pub async fn crawl_next_username() {
     let mut caller = get_caller().await;
-    for i in 0..1 {
-        let username = db::get_next_queue_username().unwrap();
-        let res = tg::get_channel_by_username(&mut caller, &username).await;
+    let username = db::get_next_queue_username().unwrap();
+    let username = "flip_net".to_string();
 
-        println!("res >> {:#?}", res);
+    let res = tg::get_channel_by_username(&mut caller, &username).await;
 
-        let cud = match res {
-            Ok(r) => {
-                let r2 = r.clone();
-                types::CachedUsernameData {
-                    username: r.username,
-                    channel_id: r.id,
-                    tg_result: Some(r2),
-                    taken: true,
-                    last_checked: 1654,
-                }
-            }
+    println!("res >> {:#?}", res);
 
-            Err(e) => types::CachedUsernameData {
-                username: username.clone(),
-                channel_id: 0,
-                tg_result: None,
+    // Save free username [free = USERNAME_NOT_OCCUPIED or registered for personal users ]
+    let save_free = || {
+        let cud = types::CachedUsernameData {
+            username: username.clone(),
+            channel_id: 0,
+            tg_result: None,
+            taken: true,
+            last_checked: 1654,
+        };
+        db::save_cached_username(&cud);
+    };
+
+    let cud = match res {
+        Ok(r) => {
+            let r2 = r.clone();
+            let cud = types::CachedUsernameData {
+                username: r.username,
+                channel_id: r.id,
+                tg_result: Some(r2),
                 taken: true,
                 last_checked: 1654,
-            },
-        };
+            };
+            db::save_cached_username(&cud);
+        }
 
-        db::save_cached_username(&cud);
-        delay_for(Duration::from_millis(20000)).await;
-    }
+        Err(e) => match e {
+            GenErr::TGRPC(rpc) => {
+                if rpc.code == 400 && &rpc.name == "USERNAME_NOT_OCCUPIED" {
+                    save_free();
+                }
+            }
+            GenErr::TGConverter => {
+                // This means username is used by other places: personal accounts
+                save_free();
+            }
+            _ => {}
+        },
+    };
+
+    delay_for(Duration::from_millis(20000)).await;
 }
 
 pub async fn crawl_config() {
@@ -85,6 +95,15 @@ pub async fn get_caller() -> tg::Caller {
     let caller = tg::Caller { client: con };
     caller
 }
+
+//////////////////////////// Archive /////////////////////////////
+
+static GLOBAL_DATA: Lazy<Mutex<HashMap<i32, String>>> = Lazy::new(|| {
+    let mut m = HashMap::new();
+    m.insert(13, "Spica".to_string());
+    m.insert(74, "Hoyten".to_string());
+    Mutex::new(m)
+});
 
 #[cfg(test)]
 mod tests {

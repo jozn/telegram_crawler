@@ -18,6 +18,34 @@ pub enum GenErr {
 
 impl Error for GenErr {}
 
+impl GenErr {
+    pub fn is_tg_not_found(&self) -> bool {
+        match self {
+            GenErr::TGRPC(rpc) => {
+                if rpc.code == 400 {
+                    true
+                } else {
+                    false
+                }
+            }
+            _ => false,
+        }
+    }
+
+    pub fn is_tg_username_free(&self) -> bool {
+        match self {
+            GenErr::TGRPC(rpc) => {
+                if rpc.code == 400 && &rpc.name == "USERNAME_NOT_OCCUPIED" {
+                    true
+                } else {
+                    false
+                }
+            }
+            _ => false,
+        }
+    }
+}
+
 impl Display for GenErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         use GenErr::*;
