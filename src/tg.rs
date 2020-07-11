@@ -288,9 +288,14 @@ fn process_inline_channel_messages(
                 if m.fwd_from.is_some() {
                     // println!(">>> msg fwd \n {:#?}", m2);
                 }
+
+                let mut ms = message_to_msg(m.clone());
+                let mut u = extract_urls_from_message_entity(m.entities);
+
                 if let Some(f) = m.media.clone() {
+                    ms.media = Some(process_inline_media(f));
                     // println!(">>>> file meida {:#?}", f);
-                    use tl::enums::MessageMedia;
+                    /*use tl::enums::MessageMedia;
                     match f {
                         MessageMedia::Photo(photo) => {
                             if let Some(pic) = photo.photo {
@@ -342,11 +347,9 @@ fn process_inline_channel_messages(
                         MessageMedia::Invoice(t) => {},
                         MessageMedia::GeoLive(t) => {},
                         MessageMedia::Poll(t) => {},
-                    }
+                    }*/
                 }
 
-                let ms = message_to_msg(m.clone());
-                let mut u = extract_urls_from_message_entity(m.entities);
                 urls.append(&mut u);
                 msgs.push(ms);
             }
@@ -357,7 +360,6 @@ fn process_inline_channel_messages(
 }
 
 fn process_inline_channel_chats(chats: Vec<tl::enums::Chat>) -> Vec<types::ChannelInfo> {
-
     let mut out = vec![];
 
     for chat in chats {
@@ -377,15 +379,150 @@ fn process_inline_channel_chats(chats: Vec<tl::enums::Chat>) -> Vec<types::Chann
                 ci.restricted = ch.restricted;
 
                 out.push(ci);
-            },
-            _ => {},
+            }
+            _ => {}
         };
-
-    };
+    }
     out
 }
 
 fn process_inline_channel_users(bots: &Vec<tl::enums::User>) {}
+
+fn process_inline_media(mm: tl::enums::MessageMedia) -> types::Media {
+    let mut m = types::Media::default();
+
+    use types::MediaType;
+    use tl::enums::MessageMedia;
+    match mm {
+        MessageMedia::Photo(photo) => {
+            m.media_type = MediaType::Image;
+            m.ttl_seconds = photo.ttl_seconds.unwrap_or(0);
+            if let Some(pic) = photo.photo {
+                use tl::enums::Photo;
+                match pic {
+                    Photo::Photo(photo) => {
+                        let p = photo;
+                        m.has_sticker = p.has_stickers;
+                        m.id = p.id;
+                        m.access_hash = p.access_hash;
+                        m.file_reference = p.file_reference;
+                        m.dc_id = p.dc_id;
+
+                        for s in p.sizes {
+                            use tl::enums::PhotoSize;
+                            match s {
+                                PhotoSize::Size(ps) => {
+                                    if m.size < ps.size {
+                                        // select the maximum one
+                                        m.w = ps.w;
+                                        m.h = ps.h;
+                                        m.size = ps.size;
+
+                                        let fl = conv_file_location(ps.location);
+                                        m.deprecated_volume_id = fl.0;
+                                        m.deprecated_local_id = fl.1;
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                        /*let inp = tl::types::InputPhotoFileLocation {
+                            id: p.id,
+                            access_hash: p.access_hash,
+                            file_reference: p.file_reference,
+                            thumb_size: "w".to_string(),
+                        };*/
+                        // get_file_photo(caller, inp).await;
+                    }
+                    Photo::Empty(e) => {}
+                }
+            }
+        }
+
+        MessageMedia::Document(doc) => {
+            println!("============== document {:#?}", doc);
+            m.ttl_seconds = doc.ttl_seconds.unwrap_or(0);
+            if let Some(document) = doc.document {
+                use tl::enums::Document;
+                match document {
+                    Document::Document(doc) => {
+                        let p = doc;
+                        m.media_type = MediaType::File;
+
+                        m.id = p.id;
+                        m.access_hash = p.access_hash;
+                        m.file_reference = p.file_reference;
+                        m.date = p.date;
+                        m.mime_type = p.mime_type;
+                        m.size = p.size;
+                        m.dc_id = p.dc_id;
+
+                        for atr in p.attributes {
+                            use tl::enums::DocumentAttribute;
+                            match atr {
+                                DocumentAttribute::ImageSize(s) => {
+                                    m.media_type = MediaType::File;
+                                    m.w = s.w;
+                                    m.h = s.h;
+                                }
+                                DocumentAttribute::Animated(s) => {
+                                    m.animated = true;
+                                }
+                                DocumentAttribute::Sticker(s) => {}
+                                DocumentAttribute::Video(s) => {
+                                    m.media_type = MediaType::Video;
+                                    m.round_message = s.round_message;
+                                    m.supports_streaming = s.supports_streaming;
+                                    m.duration = s.duration;
+                                    m.w = s.w;
+                                    m.h = s.h;
+                                }
+                                DocumentAttribute::Audio(s) => {
+                                    m.media_type = MediaType::Audio;
+                                    m.voice = s.voice;
+                                    m.duration = s.duration;
+                                    m.title = s.title.unwrap_or("".to_string());
+                                    m.performer = s.performer.unwrap_or("".to_string());
+                                    m.waveform = s.waveform.unwrap_or(vec![]);
+                                }
+                                DocumentAttribute::Filename(s) => {
+                                    m.file_name = s.file_name;
+                                }
+                                DocumentAttribute::HasStickers(s) => {
+                                    m.has_stickers = true;
+                                }
+                            }
+                        }
+
+                        /*let d = doc;
+                        let f = tl::types::InputDocumentFileLocation {
+                            id: d.id,
+                            access_hash: d.access_hash,
+                            file_reference: d.file_reference,
+                            thumb_size: "w".to_string(),
+                        };*/
+                        // get_file_doc(caller, f).await;
+                    }
+                    Document::Empty(e) => {}
+                }
+            }
+        }
+        MessageMedia::Empty(t) => {}
+        MessageMedia::Geo(t) => {}
+        MessageMedia::Contact(t) => {}
+        MessageMedia::Unsupported(t) => {}
+        MessageMedia::WebPage(t) => {
+            println!("********** webpage {:#?}", t);
+        }
+        MessageMedia::Venue(t) => {}
+        MessageMedia::Game(t) => {}
+        MessageMedia::Invoice(t) => {}
+        MessageMedia::GeoLive(t) => {}
+        MessageMedia::Poll(t) => {}
+    };
+
+    m
+}
 
 fn message_to_msg(m: tl::types::Message) -> types::Msg {
     let mut fwd = None;
@@ -420,6 +557,7 @@ fn message_to_msg(m: tl::types::Message) -> types::Msg {
         restricted: m.restriction_reason.is_some(),
         forward: fwd,
         replay: None,
+        media: None,
     }
 }
 
@@ -439,6 +577,11 @@ fn extract_urls_from_message_entity(
     urls
 }
 
+fn conv_file_location(fl: tl::enums::FileLocation) -> (i64, i32) {
+    match fl {
+        tl::enums::FileLocation::ToBeDeprecated(l) => (l.volume_id, l.local_id),
+    }
+}
 ////////////////////////////////////// Archives ////////////////////////////////////
 
 pub async fn get_contacts(g: &types::G) {

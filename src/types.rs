@@ -5,11 +5,14 @@ use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::io::Write;
 // use futures::AsyncWriteExt;
+use grammers_tl_types as tl;
 use std::cell::Cell;
 use std::sync::{Arc, Mutex};
+use std::fmt;
 
 // pub type G = Arc<Mutex<App>>;
 pub type G = Arc<App>;
+pub type Binary = Vec<u8>;
 
 use crate::client_pool;
 use serde::{Deserialize, Serialize};
@@ -60,14 +63,78 @@ pub struct Msg {
     pub restricted: bool,
     pub forward: Option<MsgForwarded>,
     pub replay: Option<MsgReplayTo>,
+
+    pub media: Option<Media>,
     // raw: tl::types::Message,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub enum MediaType {}
+pub enum MediaType {
+    Unknown,
+    Image,
+    Video,
+    Audio,
+    File,
+    ImageFile,
+}
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct Media {}
+// #[derive(Derivative)]
+#[derive(Clone, Serialize, Deserialize, Default, Debug)]
+// #[derive(Clone, Debug, Default)]
+pub struct Media {
+    pub media_type: MediaType,
+    pub has_stickers: bool,
+    pub id: i64,
+    pub access_hash: i64,
+    // #[derivative(Debug="ignore")]
+    pub file_reference: Vec<u8>,
+    pub date: i32,
+    // pub sizes: Vec<tl::enums::PhotoSize>,
+    pub dc_id: i32,
+
+    // FileLocationToBeDeprecated
+    pub deprecated_volume_id: i64,
+    pub deprecated_local_id: i32,
+
+    // pub location: tl::enums::FileLocation,
+    pub w: i32,
+    pub h: i32,
+    pub size: i32,
+
+    // Document
+    // pub id: i64,
+    // pub access_hash: i64,
+    // pub file_reference: Vec<u8>,
+    // pub date: i32,
+    pub mime_type: String,
+    // pub size: i32,
+    // pub thumbs: Option<Vec<tl::enums::PhotoSize>>,
+    // pub dc_id: i32,
+    // pub attributes: Vec<tl::enums::DocumentAttribute>,
+    pub animated: bool,
+
+    // Video
+    pub round_message: bool,
+    pub supports_streaming: bool,
+    pub duration: i32,
+    pub video_w: i32,
+    pub video_h: i32,
+
+    // Audio
+    pub voice: bool,
+    pub audio_duration: i32, // merge
+    pub title: String,
+    pub performer: String,
+    pub waveform: Vec<u8>,
+
+    pub file_name: String,
+
+    pub has_sticker: bool,
+    pub ttl_seconds: i32,
+
+    // Us
+    pub file_extention: String,
+}
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ChannelSpace {
@@ -159,3 +226,15 @@ pub struct ResResolveUsername {
     pub channel_id: i32,
     pub access_id: i64,
 }
+
+impl Default for MediaType {
+    fn default() -> Self {
+        MediaType::Unknown
+    }
+}
+
+// impl fmt::Debug for Binary {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         write!(f, "--snip Vec<u8> --",)
+//     }
+// }
