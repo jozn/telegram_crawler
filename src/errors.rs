@@ -92,5 +92,3 @@ impl From<serde_json::Error> for GenErr {
         GenErr::JSON(e)
     }
 }
-
-

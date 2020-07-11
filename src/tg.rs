@@ -14,6 +14,7 @@ pub struct Caller {
     pub client: Client,
 }
 
+#[derive(Clone, Debug)]
 pub struct ReqGetMessages {
     pub channel_id: i32,
     pub access_hash: i64,
@@ -24,6 +25,14 @@ pub struct ReqGetMessages {
     pub max_id: i32,
     pub min_id: i32,
     pub hash: i32,
+}
+
+#[derive(Clone, Debug)]
+pub struct MsgHolder {
+    pub msgs: Vec<types::Msg>,
+    pub channels: Vec<types::ChannelInfo>,
+    pub urls: Vec<String>,
+    pub users: Vec<String>,
 }
 
 pub async fn get_configs(caller: &mut Caller) -> Result<tl::enums::Config, GenErr> {
@@ -129,7 +138,7 @@ pub async fn get_channel_by_username(
     Err(GenErr::TGConverter)
 }
 
-pub async fn get_messages(caller: &mut Caller, req: ReqGetMessages) -> Result<Vec<types::Msg>, GenErr> {
+pub async fn get_messages(caller: &mut Caller, req: ReqGetMessages) -> Result<MsgHolder, GenErr> {
     let request = tl::functions::messages::GetHistory {
         peer: tl::enums::InputPeer::Channel(tl::types::InputPeerChannel {
             channel_id: req.channel_id,
@@ -145,9 +154,9 @@ pub async fn get_messages(caller: &mut Caller, req: ReqGetMessages) -> Result<Ve
     };
 
     // let mt: tl::enums::messages::Messages = send_req(g, &request).await?;
-    let mt: tl::enums::messages::Messages = caller.client.invoke( &request).await?;
+    let mt: tl::enums::messages::Messages = caller.client.invoke(&request).await?;
     println!("messages #{:#?}", mt);
-    process_msgs(caller, mt).await
+    process_channel_msgs(caller, mt).await
 }
 
 pub async fn get_file(caller: &mut Caller, req: tl::types::InputFileLocation) {
@@ -237,113 +246,146 @@ pub async fn get_file_doc(caller: &mut Caller, req: tl::types::InputDocumentFile
     f.write(&out_buffer);
 }
 
-async fn process_msgs(
+async fn process_channel_msgs(
     caller: &mut Caller,
     mt: tl::enums::messages::Messages,
-) -> Result<Vec<types::Msg>, GenErr> {
-    let mut msgs = vec![];
-    let mut urls: Vec<String> = vec![];
+) -> Result<MsgHolder, GenErr> {
+    let mut msg_holder = MsgHolder {
+        msgs: vec![],
+        channels: vec![],
+        urls: vec![],
+        users: vec![],
+    };
+
+    // let mut msgs = vec![];
+    // let mut urls: Vec<String> = vec![];
     match mt {
-        Messages::ChannelMessages(m) => {
-            for m in m.messages {
-                match m {
-                    Message::Message(m2) => {
-                        if m2.fwd_from.is_some() {
-                            // println!(">>> msg fwd \n {:#?}", m2);
-                        }
-                        if let Some(f) = m2.media.clone() {
-                            // println!(">>>> file meida {:#?}", f);
-                            use tl::enums::MessageMedia;
-                            match f {
-                                MessageMedia::Photo(photo) => {
-                                    if let Some(pic) = photo.photo {
-                                        use tl::enums::Photo;
-                                        match pic {
-                                            Photo::Photo(photo) => {
-                                                let p = photo;
-                                                let inp = tl::types::InputPhotoFileLocation {
-                                                    id: p.id,
-                                                    access_hash: p.access_hash,
-                                                    file_reference: p.file_reference,
-                                                    thumb_size: "w".to_string(),
-                                                };
-                                                get_file_photo(caller, inp).await;
-                                            }
-                                            _ => {}
-                                        }
-                                    }
-                                }
-
-                                MessageMedia::Document(doc) => {
-                                    if let Some(document) = doc.document {
-                                        use tl::enums::Document;
-                                        match document {
-                                            Document::Document(doc) => {
-                                                let d = doc;
-                                                let f = tl::types::InputDocumentFileLocation {
-                                                    id: d.id,
-                                                    access_hash: d.access_hash,
-                                                    file_reference: d.file_reference,
-                                                    thumb_size: "w".to_string(),
-                                                };
-                                                get_file_doc(caller, f).await;
-                                            }
-                                            _ => {}
-                                        }
-                                    }
-                                }
-
-                                _ => {}
-                            }
-                        }
-
-                        let ms = message_to_msg(m2.clone());
-                        let mut u = extract_urls_from_message_entity(m2.entities);
-                        urls.append(&mut u);
-                        msgs.push(ms);
-                    }
-                    _ => {}
-                }
-            }
+        Messages::ChannelMessages(cm) => {
+            msg_holder.channels = process_inline_channel_chats(cm.chats.clone());
+            process_inline_channel_users(&cm.users);
+            let res = process_inline_channel_messages(cm.messages.clone());
+            msg_holder.msgs = res.0;
+            msg_holder.urls = res.1;
         }
         _ => println!("other form of messages!"),
     };
-    Ok(msgs)
+    Ok(msg_holder)
     // println!("msgs {:#?} ", msgs);
     // println!("urls {:#?} ", urls);
 }
 
-fn process_msgs22(mt: tl::enums::messages::Messages) {
+fn process_inline_channel_messages(
+    messages: Vec<tl::enums::Message>,
+) -> (Vec<types::Msg>, Vec<String>) {
     let mut msgs = vec![];
     let mut urls: Vec<String> = vec![];
-    match mt {
-        Messages::ChannelMessages(m) => {
-            for m in m.messages {
-                match m {
-                    Message::Message(m2) => {
-                        if m2.fwd_from.is_some() {
-                            // println!(">>> msg fwd \n {:#?}", m2);
-                        }
-                        if let Some(f) = m2.media.clone() {
-                            // println!(">>>> file meida {:?}", f)
 
-                            // app.get_file();
-                        }
-
-                        let ms = message_to_msg(m2.clone());
-                        let mut u = extract_urls_from_message_entity(m2.entities);
-                        urls.append(&mut u);
-                        msgs.push(ms);
-                    }
-                    _ => {}
+    for msg_enum in messages {
+        match msg_enum {
+            Message::Empty(em) => {}
+            Message::Service(service_msg) => {}
+            Message::Message(m) => {
+                if m.fwd_from.is_some() {
+                    // println!(">>> msg fwd \n {:#?}", m2);
                 }
+                if let Some(f) = m.media.clone() {
+                    // println!(">>>> file meida {:#?}", f);
+                    use tl::enums::MessageMedia;
+                    match f {
+                        MessageMedia::Photo(photo) => {
+                            if let Some(pic) = photo.photo {
+                                use tl::enums::Photo;
+                                match pic {
+                                    Photo::Photo(photo) => {
+                                        let p = photo;
+                                        let inp = tl::types::InputPhotoFileLocation {
+                                            id: p.id,
+                                            access_hash: p.access_hash,
+                                            file_reference: p.file_reference,
+                                            thumb_size: "w".to_string(),
+                                        };
+                                        // get_file_photo(caller, inp).await;
+                                    }
+                                    _ => {}
+                                }
+                            }
+                        }
+
+                        MessageMedia::Document(doc) => {
+                            println!("============== document {:#?}", doc);
+                            if let Some(document) = doc.document {
+                                use tl::enums::Document;
+                                match document {
+                                    Document::Document(doc) => {
+                                        let d = doc;
+                                        let f = tl::types::InputDocumentFileLocation {
+                                            id: d.id,
+                                            access_hash: d.access_hash,
+                                            file_reference: d.file_reference,
+                                            thumb_size: "w".to_string(),
+                                        };
+                                        // get_file_doc(caller, f).await;
+                                    },
+                                    Document::Empty(e) => {},
+                                }
+                            }
+                        },
+                        MessageMedia::Empty(t) => {},
+                        MessageMedia::Geo(t) => {},
+                        MessageMedia::Contact(t) => {},
+                        MessageMedia::Unsupported(t) => {},
+                        MessageMedia::WebPage(t) => {
+                            println!("********** webpage {:#?}", t);
+                        },
+                        MessageMedia::Venue(t) => {},
+                        MessageMedia::Game(t) => {},
+                        MessageMedia::Invoice(t) => {},
+                        MessageMedia::GeoLive(t) => {},
+                        MessageMedia::Poll(t) => {},
+                    }
+                }
+
+                let ms = message_to_msg(m.clone());
+                let mut u = extract_urls_from_message_entity(m.entities);
+                urls.append(&mut u);
+                msgs.push(ms);
             }
         }
-        _ => println!("other form of messages!"),
     }
-    // println!("msgs {:#?} ", msgs);
-    // println!("urls {:#?} ", urls);
+
+    (msgs, urls)
 }
+
+fn process_inline_channel_chats(chats: Vec<tl::enums::Chat>) -> Vec<types::ChannelInfo> {
+
+    let mut out = vec![];
+
+    for chat in chats {
+        let mut ci = types::ChannelInfo::default();
+
+        use tl::enums::Chat;
+        match chat {
+            Chat::Channel(ch) => {
+                ci.id = ch.id;
+                ci.title = ch.title.clone();
+                ci.username = ch.username.clone().unwrap_or("".to_string());
+                ci.access_hash = ch.access_hash.unwrap_or(0);
+                ci.date = ch.date;
+                ci.version = ch.version;
+                // ci.members_count = ch.participants_count.unwrap_or(0); // Note: it is None in here! use 'full_chat'
+                ci.megagroup = ch.megagroup;
+                ci.restricted = ch.restricted;
+
+                out.push(ci);
+            },
+            _ => {},
+        };
+
+    };
+    out
+}
+
+fn process_inline_channel_users(bots: &Vec<tl::enums::User>) {}
 
 fn message_to_msg(m: tl::types::Message) -> types::Msg {
     let mut fwd = None;
@@ -465,11 +507,17 @@ pub async fn bench_messages_loading_flood(g: &types::G) {
     }
 }
 
-async fn send_req<R: RemoteCall>(caller: &mut Caller, request: &R) -> Result<R::Return, InvocationError> {
+async fn send_req<R: RemoteCall>(
+    caller: &mut Caller,
+    request: &R,
+) -> Result<R::Return, InvocationError> {
     caller.client.invoke(request).await
 }
 
-async fn send_req_dep<R: RemoteCall>(g: &types::G, request: &R) -> Result<R::Return, InvocationError> {
+async fn send_req_dep<R: RemoteCall>(
+    g: &types::G,
+    request: &R,
+) -> Result<R::Return, InvocationError> {
     let mut m = g.clients.lock().unwrap();
 
     let mut s = m
@@ -485,3 +533,114 @@ async fn send_req_dep<R: RemoteCall>(g: &types::G, request: &R) -> Result<R::Ret
 }
 
 //////////////////////////////////// Temp bk ////////////////////////////////////////
+
+/*
+async fn process_channel_msgs_with_all_files_(
+    caller: &mut Caller,
+    mt: tl::enums::messages::Messages,
+) -> Result<Vec<types::Msg>, GenErr> {
+    let mut msgs = vec![];
+    let mut urls: Vec<String> = vec![];
+    match mt {
+        Messages::ChannelMessages(cm) => {
+            process_inline_channel_chats(&cm.chats);
+            process_inline_channel_users(&cm.users);
+            process_inline_channel_messages(cm.messages.clone());
+
+            for m in cm.messages {
+                match m {
+                    Message::Message(m2) => {
+                        if m2.fwd_from.is_some() {
+                            // println!(">>> msg fwd \n {:#?}", m2);
+                        }
+                        if let Some(f) = m2.media.clone() {
+                            // println!(">>>> file meida {:#?}", f);
+                            use tl::enums::MessageMedia;
+                            match f {
+                                MessageMedia::Photo(photo) => {
+                                    if let Some(pic) = photo.photo {
+                                        use tl::enums::Photo;
+                                        match pic {
+                                            Photo::Photo(photo) => {
+                                                let p = photo;
+                                                let inp = tl::types::InputPhotoFileLocation {
+                                                    id: p.id,
+                                                    access_hash: p.access_hash,
+                                                    file_reference: p.file_reference,
+                                                    thumb_size: "w".to_string(),
+                                                };
+                                                get_file_photo(caller, inp).await;
+                                            }
+                                            _ => {}
+                                        }
+                                    }
+                                }
+
+                                MessageMedia::Document(doc) => {
+                                    if let Some(document) = doc.document {
+                                        use tl::enums::Document;
+                                        match document {
+                                            Document::Document(doc) => {
+                                                let d = doc;
+                                                let f = tl::types::InputDocumentFileLocation {
+                                                    id: d.id,
+                                                    access_hash: d.access_hash,
+                                                    file_reference: d.file_reference,
+                                                    thumb_size: "w".to_string(),
+                                                };
+                                                get_file_doc(caller, f).await;
+                                            }
+                                            _ => {}
+                                        }
+                                    }
+                                }
+
+                                _ => {}
+                            }
+                        }
+
+                        let ms = message_to_msg(m2.clone());
+                        let mut u = extract_urls_from_message_entity(m2.entities);
+                        urls.append(&mut u);
+                        msgs.push(ms);
+                    },
+                    Message::Service(service_msg) => {},
+                    Message::Empty(em) => {}
+                }
+            }
+        }
+        _ => println!("other form of messages!"),
+    };
+    Ok(msgs)
+    // println!("msgs {:#?} ", msgs);
+    // println!("urls {:#?} ", urls);
+}
+
+pub async fn get_messages_bk(
+    caller: &mut Caller,
+    req: ReqGetMessages,
+) -> Result<Vec<types::Msg>, GenErr> {
+    let request = tl::functions::messages::GetHistory {
+        peer: tl::enums::InputPeer::Channel(tl::types::InputPeerChannel {
+            channel_id: req.channel_id,
+            access_hash: req.access_hash,
+        }),
+        offset_id: req.offset_id,
+        offset_date: req.offset_date,
+        add_offset: req.add_offset,
+        limit: req.limit, //100
+        max_id: req.max_id,
+        min_id: req.min_id,
+        hash: req.hash,
+    };
+
+    // let mt: tl::enums::messages::Messages = send_req(g, &request).await?;
+    let mt: tl::enums::messages::Messages = caller.client.invoke(&request).await?;
+    println!("messages #{:#?}", mt);
+    process_channel_msgs(caller, mt).await
+}
+
+
+
+
+ */

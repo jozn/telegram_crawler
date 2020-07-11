@@ -18,7 +18,7 @@ use std::sync::Mutex;
 pub async fn crawl_next_username() -> Result<(), GenErr> {
     let mut caller = get_caller().await;
     let username = db::get_next_queue_username()?;
-    // let username = "flip_net".to_string();
+    // let username = "flip_app".to_string();
 
     let rpc_res = tg::get_channel_by_username(&mut caller, &username).await;
 
@@ -39,7 +39,8 @@ pub async fn crawl_next_username() -> Result<(), GenErr> {
 
     let cud = match rpc_res {
         Ok(chan_res) => {
-            let chanel_info = tg::get_channel_info(&mut caller, chan_res.id, chan_res.access_hash).await?;
+            let chanel_info =
+                tg::get_channel_info(&mut caller, chan_res.id, chan_res.access_hash).await?;
             let channel_info_clone = chanel_info.clone();
 
             let cud = types::CachedUsernameData {
@@ -92,7 +93,7 @@ pub async fn crawl_next_channel_messages() -> Result<(), GenErr> {
     if let Some(ci) = cd.channel_info {
         println!("senfing ");
 
-        let req = tg::ReqGetMessages{
+        let req = tg::ReqGetMessages {
             channel_id: ci.id,
             access_hash: ci.access_hash,
             offset_id: 0,
@@ -101,16 +102,15 @@ pub async fn crawl_next_channel_messages() -> Result<(), GenErr> {
             limit: 3,
             max_id: 0,
             min_id: 0,
-            hash: 0
+            hash: 0,
         };
 
-        let rpc_res = tg::get_messages(&mut caller,req ).await;
+        let rpc_res = tg::get_messages(&mut caller, req).await;
 
-        println!("channel: {:#?} \n\n  res >> {:#?}",ci, rpc_res);
+        println!("channel: {:#?} \n\n  res >> {:#?}", ci, rpc_res);
 
         delay_for(Duration::from_millis(5000)).await;
     }
-
 
     Ok(())
 }
@@ -131,7 +131,6 @@ pub async fn crawl_next_channel() {
 
     println!("res >> {:#?}", GLOBAL_DATA);
 }
-
 
 static GLOBAL_DATA: Lazy<Mutex<HashMap<i32, String>>> = Lazy::new(|| {
     let mut m = HashMap::new();

@@ -65,16 +65,16 @@ pub fn save_cached_username(cud: &types::CachedUsernameData) {
 
 pub fn load_all_cached_usernames() {}
 
-
 pub fn get_random_cached_channel() -> Result<types::CachedUsernameData, GenErr> {
     let con = get_conn();
 
     // let q = "SELECT data FROM cached_username where channel_id != 0 ORDER BY RANDOM() LIMIT 1";
-    let q = "SELECT data FROM cached_username where channel_id == 1013801784 ORDER BY RANDOM() LIMIT 1";
+    let q =
+        "SELECT data FROM cached_username where channel_id == 1163672339 ORDER BY RANDOM() LIMIT 1";
 
     let mut stmt = con.prepare(q)?;
     let m = stmt.query_row(params![], |row| {
-        let s : String= row.get(0)?;
+        let s: String = row.get(0)?;
         Ok(s)
     })?;
     let ch_info = serde_json::from_str(&m)?;
