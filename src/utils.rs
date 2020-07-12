@@ -74,6 +74,20 @@ pub fn time_now_sec() -> u32 {
         .as_secs() as u32
 }
 
+pub fn get_file_extension_from_mime_type(mt :&str) -> String {
+    let out = match mt {
+        "image/jpeg" => "jpg",
+        "audio/mpeg" => "mp3",
+        "audio/midi" => "midi",
+        "text/x-pascal" => "pas",
+        "text/x-asm" => "asm",
+        "video/quicktime" => "mov",
+        _ => mime_db::extension(mt).unwrap_or("unk"),
+    };
+
+    format!(".{}",out)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -110,5 +124,17 @@ mod tests {
         for i in arr {
             assert_eq!(is_valid_username_pattern(i.0), i.1, "{}", i.0);
         }
+    }
+
+    #[test]
+    fn test_mime_types() {
+        assert_eq!(mime_db::extension("image/png").unwrap(), "png");
+        assert_eq!(mime_db::extension("image/jpeg").unwrap(), "jpeg");
+        assert_eq!(mime_db::extension("image/gif").unwrap(), "gif");
+        assert_eq!(mime_db::extension("image/webp").unwrap(), "webp");
+        assert_eq!(mime_db::extension("video/mp4").unwrap(), "mp4");
+        assert_eq!(mime_db::extension("audio/midi").unwrap(), "mid"); // midi
+        assert_eq!(mime_db::extension("audio/mpeg").unwrap(), "mpga"); // mp3
+        assert_eq!(mime_db::extension("video/quicktime").unwrap(), "qt"); // mov
     }
 }

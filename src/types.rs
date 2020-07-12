@@ -7,8 +7,8 @@ use std::io::Write;
 // use futures::AsyncWriteExt;
 use grammers_tl_types as tl;
 use std::cell::Cell;
-use std::sync::{Arc, Mutex};
 use std::fmt;
+use std::sync::{Arc, Mutex};
 
 // pub type G = Arc<Mutex<App>>;
 pub type G = Arc<App>;
@@ -91,10 +91,11 @@ pub struct Media {
     pub date: i32,
     // pub sizes: Vec<tl::enums::PhotoSize>,
     pub dc_id: i32,
+    pub photo_size_type: String,
 
     // FileLocationToBeDeprecated
-    pub deprecated_volume_id: i64,
-    pub deprecated_local_id: i32,
+    pub dep_volume_id: i64,
+    pub dep_local_id: i32,
 
     // pub location: tl::enums::FileLocation,
     pub w: i32,
@@ -117,12 +118,14 @@ pub struct Media {
     pub round_message: bool,
     pub supports_streaming: bool,
     pub duration: i32,
-    pub video_w: i32,
-    pub video_h: i32,
+    // pub video_w: i32,
+    // pub video_h: i32,
+    pub video_thumbs_rec: Box<Option<Media>>,
+    pub video_thumbs: Option<MediaThumb>,
 
     // Audio
     pub voice: bool,
-    pub audio_duration: i32, // merge
+    // pub audio_duration: i32, // merge
     pub title: String,
     pub performer: String,
     pub waveform: Vec<u8>,
@@ -134,6 +137,17 @@ pub struct Media {
 
     // Us
     pub file_extention: String,
+}
+
+#[derive(Clone, Serialize, Deserialize, Default, Debug)]
+// #[derive(Clone, Debug, Default)]
+pub struct MediaThumb {
+    pub dep_volume_id: i64,
+    pub dep_local_id: i32,
+    pub w: i32,
+    pub h: i32,
+    pub size: i32,
+    // pub file_extention: String,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -158,6 +172,7 @@ pub struct ChannelInfo {
     pub pts: i32,
     pub restricted: bool,
     pub megagroup: bool,
+    pub full_data: bool,
 }
 
 #[derive(Clone, Serialize, Deserialize, Default, Debug)]

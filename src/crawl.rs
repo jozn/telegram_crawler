@@ -8,12 +8,11 @@ use std::fs::File;
 use std::ops::Index;
 use std::time::Duration;
 use tokio::time::delay_for;
-
-use crate::{db, errors::GenErr, tg, types, utils};
-
 use grammers_client::Client;
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
+
+use crate::{db, errors::GenErr, tg, types, utils};
 
 pub async fn crawl_next_username() -> Result<(), GenErr> {
     let mut caller = get_caller().await;
@@ -68,7 +67,7 @@ pub async fn crawl_next_username() -> Result<(), GenErr> {
         },
     };
 
-    delay_for(Duration::from_millis(5000)).await;
+    // delay_for(Duration::from_millis(5000)).await;
     Ok(())
 }
 
@@ -117,7 +116,7 @@ pub async fn crawl_next_channel_messages() -> Result<(), GenErr> {
 
 //////////////////////////// Archive /////////////////////////////
 
-pub async fn crawl_next_channel() {
+pub async fn crawl_next_channel_dep() {
     let mut caller = get_caller().await;
     for i in 0..1 {
         // let username = get_next_channel_username();
@@ -146,7 +145,10 @@ mod tests {
     fn test_1() {
         println!("dir {:?}", std::env::current_dir().unwrap());
         for i in 0..100 {
-            println!("> {}", super::get_next_channel_username());
+            // println!("> {}", super::get_next_channel_username());
         }
     }
+
+
+
 }

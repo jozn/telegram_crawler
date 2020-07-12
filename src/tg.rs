@@ -8,7 +8,8 @@ use grammers_tl_types::enums::{Message, MessageEntity};
 use grammers_tl_types::RemoteCall;
 use std::io::Write;
 
-use crate::{errors::GenErr, types};
+use crate::{errors::GenErr, types, utils};
+use crate::types::{Media, MediaThumb};
 
 pub struct Caller {
     pub client: Client,
@@ -84,8 +85,9 @@ pub async fn get_channel_info(
                         ci.date = ch.date;
                         ci.version = ch.version;
                         // ci.members_count = ch.participants_count.unwrap_or(0); // Note: it is None in here! use 'full_chat'
-                        ci.megagroup = ch.megagroup;
                         ci.restricted = ch.restricted;
+                        ci.megagroup = ch.megagroup;
+                        ci.full_data = true;
                     }
                     _ => {}
                 };
@@ -155,7 +157,7 @@ pub async fn get_messages(caller: &mut Caller, req: ReqGetMessages) -> Result<Ms
 
     // let mt: tl::enums::messages::Messages = send_req(g, &request).await?;
     let mt: tl::enums::messages::Messages = caller.client.invoke(&request).await?;
-    println!("messages #{:#?}", mt);
+    // println!("messages #{:#?}", mt);
     process_channel_msgs(caller, mt).await
 }
 
@@ -391,13 +393,15 @@ fn process_inline_channel_users(bots: &Vec<tl::enums::User>) {}
 fn process_inline_media(mm: tl::enums::MessageMedia) -> types::Media {
     let mut m = types::Media::default();
 
-    use types::MediaType;
     use tl::enums::MessageMedia;
+    use types::MediaType;
     match mm {
         MessageMedia::Photo(photo) => {
             m.media_type = MediaType::Image;
             m.ttl_seconds = photo.ttl_seconds.unwrap_or(0);
             if let Some(pic) = photo.photo {
+                // println!("====== Photo {:#?}", pic);
+
                 use tl::enums::Photo;
                 match pic {
                     Photo::Photo(photo) => {
@@ -407,6 +411,7 @@ fn process_inline_media(mm: tl::enums::MessageMedia) -> types::Media {
                         m.access_hash = p.access_hash;
                         m.file_reference = p.file_reference;
                         m.dc_id = p.dc_id;
+                        m.file_extention = ".jpg".to_string();
 
                         for s in p.sizes {
                             use tl::enums::PhotoSize;
@@ -417,10 +422,11 @@ fn process_inline_media(mm: tl::enums::MessageMedia) -> types::Media {
                                         m.w = ps.w;
                                         m.h = ps.h;
                                         m.size = ps.size;
+                                        m.photo_size_type = ps.r#type;
 
                                         let fl = conv_file_location(ps.location);
-                                        m.deprecated_volume_id = fl.0;
-                                        m.deprecated_local_id = fl.1;
+                                        m.dep_volume_id = fl.0;
+                                        m.dep_local_id = fl.1;
                                     }
                                 }
                                 _ => {}
@@ -440,7 +446,7 @@ fn process_inline_media(mm: tl::enums::MessageMedia) -> types::Media {
         }
 
         MessageMedia::Document(doc) => {
-            println!("============== document {:#?}", doc);
+            // println!("============== document {:#?}", doc);
             m.ttl_seconds = doc.ttl_seconds.unwrap_or(0);
             if let Some(document) = doc.document {
                 use tl::enums::Document;
@@ -453,9 +459,18 @@ fn process_inline_media(mm: tl::enums::MessageMedia) -> types::Media {
                         m.access_hash = p.access_hash;
                         m.file_reference = p.file_reference;
                         m.date = p.date;
-                        m.mime_type = p.mime_type;
+                        m.mime_type = p.mime_type.clone();
                         m.size = p.size;
                         m.dc_id = p.dc_id;
+
+                        // m.file_extention = mime_db::extension(&p.mime_type).unwrap_or("").to_string();
+                        m.file_extention = utils::get_file_extension_from_mime_type(&p.mime_type);
+
+                        //todo move to just video + remove rec
+                        if p.thumbs.is_some() {
+                            m.video_thumbs_rec = Box::new( conv_vidoe_thumbs_rec(p.thumbs.clone().unwrap()));
+                            m.video_thumbs = conv_vidoe_thumbs(p.thumbs.unwrap());
+                        }
 
                         for atr in p.attributes {
                             use tl::enums::DocumentAttribute;
@@ -582,6 +597,73 @@ fn conv_file_location(fl: tl::enums::FileLocation) -> (i64, i32) {
         tl::enums::FileLocation::ToBeDeprecated(l) => (l.volume_id, l.local_id),
     }
 }
+
+fn conv_vidoe_thumbs(vts: Vec<tl::enums::PhotoSize>) -> Option<MediaThumb> {
+    if vts.len() == 0 {
+        return None;
+    }
+
+    let mut m = types::MediaThumb::default();
+
+    for vt in vts{
+        use tl::enums::PhotoSize;
+        match vt {
+            PhotoSize::Size(s) => {
+                // select the maximum one
+                if m.size < s.size {
+                    m.w = s.w;
+                    m.h = s.h;
+                    m.size = s.size;
+
+                    use tl::enums::FileLocation;
+                    match s.location {
+                        FileLocation::ToBeDeprecated(l) => {
+                            m.dep_volume_id = l.volume_id;
+                            m.dep_local_id = l.local_id;
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    };
+
+    Some(m)
+}
+
+fn conv_vidoe_thumbs_rec(vts: Vec<tl::enums::PhotoSize>) -> Option<Media> {
+    if vts.len() == 0 {
+        return None;
+    }
+
+    let mut m = Media::default();
+
+    for vt in vts{
+        use tl::enums::PhotoSize;
+        match vt {
+            PhotoSize::Size(s) => {
+                // select the maximum one
+                if m.size < s.size {
+                    m.w = s.w;
+                    m.h = s.h;
+                    m.size = s.size;
+
+                    use tl::enums::FileLocation;
+                    match s.location {
+                        FileLocation::ToBeDeprecated(l) => {
+                            m.dep_volume_id = l.volume_id;
+                            m.dep_local_id = l.local_id;
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    };
+
+    Some(m)
+}
+
 ////////////////////////////////////// Archives ////////////////////////////////////
 
 pub async fn get_contacts(g: &types::G) {
