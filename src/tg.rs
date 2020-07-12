@@ -8,8 +8,8 @@ use grammers_tl_types::enums::{Message, MessageEntity};
 use grammers_tl_types::RemoteCall;
 use std::io::Write;
 
-use crate::{errors::GenErr, types, utils};
 use crate::types::{Media, MediaThumb};
+use crate::{errors::GenErr, types, utils};
 
 pub struct Caller {
     pub client: Client,
@@ -161,93 +161,6 @@ pub async fn get_messages(caller: &mut Caller, req: ReqGetMessages) -> Result<Ms
     process_channel_msgs(caller, mt).await
 }
 
-pub async fn get_file(caller: &mut Caller, req: tl::types::InputFileLocation) {
-    let request = tl::functions::upload::GetFile {
-        precise: false,
-        cdn_supported: false,
-        location: tl::enums::InputFileLocation::Location(req),
-        offset: 0,
-        limit: 524288,
-    };
-    let res = send_req(caller, &request).await.unwrap();
-    // println!("get_chat_id:  {:#?}", res);
-}
-
-pub async fn get_file_photo(caller: &mut Caller, req: tl::types::InputPhotoFileLocation) {
-    // println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  {:#?}", req);
-    let request = tl::functions::upload::GetFile {
-        precise: false,
-        cdn_supported: false,
-        location: tl::enums::InputFileLocation::InputPhotoFileLocation(req.clone()),
-        offset: 0,
-        limit: 524288,
-    };
-    let res = send_req(caller, &request).await.unwrap();
-
-    std::fs::create_dir_all("./out/").unwrap();
-    let name = format!("./out/{}.jpg", req.id);
-    let mut f = std::fs::File::create(name).unwrap();
-
-    use tl::enums::upload::File;
-
-    match res {
-        File::File(tfile) => {
-            f.write(&tfile.bytes);
-        }
-        File::CdnRedirect(red) => {}
-    };
-}
-
-pub async fn get_file_doc(caller: &mut Caller, req: tl::types::InputDocumentFileLocation) {
-    let limit = 524288;
-    let mut out_buffer = Vec::with_capacity(limit as usize);
-    let mut offset = 0;
-
-    loop {
-        let request = tl::functions::upload::GetFile {
-            precise: false,
-            cdn_supported: false,
-            location: tl::enums::InputFileLocation::InputDocumentFileLocation(req.clone()),
-            offset: offset,
-            limit: limit,
-        };
-        let res = send_req(caller, &request).await;
-
-        match res {
-            Ok(res) => {
-                use tl::enums::upload::File;
-                match res {
-                    File::File(tfile) => {
-                        let len = tfile.bytes.len() as i32;
-                        out_buffer.write(&tfile.bytes);
-                        if len == limit {
-                            offset = offset + limit;
-                        } else {
-                            break;
-                        }
-                    }
-                    File::CdnRedirect(red) => {
-                        break;
-                    }
-                };
-            }
-            Err(err) => {
-                break;
-            }
-        }
-        //println!("%%%%%% get_file_photo :  {:#?}", res);
-    }
-
-    if out_buffer.len() == 0 {
-        return;
-    }
-
-    std::fs::create_dir_all("./out/").unwrap();
-    let name = format!("./out/{}.file", req.id);
-    let mut f = std::fs::File::create(name).unwrap();
-    f.write(&out_buffer);
-}
-
 async fn process_channel_msgs(
     caller: &mut Caller,
     mt: tl::enums::messages::Messages,
@@ -291,11 +204,11 @@ fn process_inline_channel_messages(
                     // println!(">>> msg fwd \n {:#?}", m2);
                 }
 
-                let mut ms = message_to_msg(m.clone());
+                let mut ms = conv_message_to_msg(m.clone());
                 let mut u = extract_urls_from_message_entity(m.entities);
 
                 if let Some(f) = m.media.clone() {
-                    ms.media = Some(process_inline_media(f));
+                    ms.media = process_inline_media(f);
                     // println!(">>>> file meida {:#?}", f);
                     /*use tl::enums::MessageMedia;
                     match f {
@@ -390,7 +303,7 @@ fn process_inline_channel_chats(chats: Vec<tl::enums::Chat>) -> Vec<types::Chann
 
 fn process_inline_channel_users(bots: &Vec<tl::enums::User>) {}
 
-fn process_inline_media(mm: tl::enums::MessageMedia) -> types::Media {
+fn process_inline_media(mm: tl::enums::MessageMedia) -> Option<types::Media> {
     let mut m = types::Media::default();
 
     use tl::enums::MessageMedia;
@@ -442,7 +355,8 @@ fn process_inline_media(mm: tl::enums::MessageMedia) -> types::Media {
                     }
                     Photo::Empty(e) => {}
                 }
-            }
+            };
+            return Some(m);
         }
 
         MessageMedia::Document(doc) => {
@@ -468,7 +382,8 @@ fn process_inline_media(mm: tl::enums::MessageMedia) -> types::Media {
 
                         //todo move to just video + remove rec
                         if p.thumbs.is_some() {
-                            m.video_thumbs_rec = Box::new( conv_vidoe_thumbs_rec(p.thumbs.clone().unwrap()));
+                            m.video_thumbs_rec =
+                                Box::new(conv_vidoe_thumbs_rec(p.thumbs.clone().unwrap()));
                             m.video_thumbs = conv_vidoe_thumbs(p.thumbs.unwrap());
                         }
 
@@ -520,7 +435,8 @@ fn process_inline_media(mm: tl::enums::MessageMedia) -> types::Media {
                     }
                     Document::Empty(e) => {}
                 }
-            }
+            };
+            return Some(m);
         }
         MessageMedia::Empty(t) => {}
         MessageMedia::Geo(t) => {}
@@ -535,11 +451,10 @@ fn process_inline_media(mm: tl::enums::MessageMedia) -> types::Media {
         MessageMedia::GeoLive(t) => {}
         MessageMedia::Poll(t) => {}
     };
-
-    m
+    None
 }
 
-fn message_to_msg(m: tl::types::Message) -> types::Msg {
+fn conv_message_to_msg(m: tl::types::Message) -> types::Msg {
     let mut fwd = None;
     if let Some(fw) = m.fwd_from {
         use tl::enums::MessageFwdHeader::*;
@@ -605,7 +520,7 @@ fn conv_vidoe_thumbs(vts: Vec<tl::enums::PhotoSize>) -> Option<MediaThumb> {
 
     let mut m = types::MediaThumb::default();
 
-    for vt in vts{
+    for vt in vts {
         use tl::enums::PhotoSize;
         match vt {
             PhotoSize::Size(s) => {
@@ -626,7 +541,7 @@ fn conv_vidoe_thumbs(vts: Vec<tl::enums::PhotoSize>) -> Option<MediaThumb> {
             }
             _ => {}
         }
-    };
+    }
 
     Some(m)
 }
@@ -638,7 +553,7 @@ fn conv_vidoe_thumbs_rec(vts: Vec<tl::enums::PhotoSize>) -> Option<Media> {
 
     let mut m = Media::default();
 
-    for vt in vts{
+    for vt in vts {
         use tl::enums::PhotoSize;
         match vt {
             PhotoSize::Size(s) => {
@@ -659,9 +574,214 @@ fn conv_vidoe_thumbs_rec(vts: Vec<tl::enums::PhotoSize>) -> Option<Media> {
             }
             _ => {}
         }
-    };
+    }
 
     Some(m)
+}
+
+////////////////////////////////////// Archives dls ////////////////////////////////
+
+pub async fn dl_media_to_disck(caller: &mut Caller, m: &types::Media) -> Result<(), GenErr> {
+    let res = dl_media(caller, m.clone()).await?;
+    std::fs::create_dir_all("./_dl/").unwrap();
+    let name = format!("./_dl/{}{}", m.id, m.file_extention);
+    let mut f = std::fs::File::create(name).unwrap();
+    f.write(&res);
+    Ok(())
+}
+
+pub async fn dl_media(caller: &mut Caller, m: types::Media) -> Result<Vec<u8>, GenErr> {
+    use types::MediaType::*;
+    match m.media_type {
+        Image => {
+            _dl_image(caller, m.clone()).await
+            // let res = _dl_image(caller,m.clone()).await.unwrap();
+            // std::fs::create_dir_all("./_dl/").unwrap();
+            // let name = format!("./_dl/{}{}", m.id,m.file_extention);
+            // let mut f = std::fs::File::create(name).unwrap();
+            // f.write(&res);
+        }
+        Video | Audio | File | ImageFile => {
+            _dl_file(caller, m.clone()).await
+            // let res = _dl_file(caller,m.clone()).await.unwrap();
+            // std::fs::create_dir_all("./_dl/").unwrap();
+            // let name = format!("./_dl/{}{}", m.id,m.file_extention);
+            // let mut f = std::fs::File::create(name).unwrap();
+            // f.write(&res);
+        }
+        Unknown => Err(GenErr::Download),
+    }
+}
+
+async fn _dl_image(caller: &mut Caller, m: types::Media) -> Result<Vec<u8>, GenErr> {
+    let request = tl::functions::upload::GetFile {
+        precise: false,
+        cdn_supported: false,
+        location: tl::enums::InputFileLocation::InputPhotoFileLocation(
+            tl::types::InputPhotoFileLocation {
+                id: m.id,
+                access_hash: m.access_hash,
+                file_reference: m.file_reference,
+                thumb_size: m.photo_size_type,
+            },
+        ),
+        offset: 0,
+        limit: 524288,
+    };
+    let res = send_req(caller, &request).await?;
+
+    let mut out = vec![];
+    use tl::enums::upload::File;
+    match res {
+        File::File(tfile) => {
+            // f.write(&tfile.bytes);
+            out.write(&tfile.bytes);
+        }
+        File::CdnRedirect(red) => {
+            println!("cdn redirect");
+        }
+    };
+    Ok(out)
+}
+
+async fn _dl_file(caller: &mut Caller, m: types::Media) -> Result<Vec<u8>, GenErr> {
+    let limit = 524288;
+    let mut out_buffer = Vec::with_capacity(limit as usize);
+    let mut offset = 0;
+
+    loop {
+        let request = tl::functions::upload::GetFile {
+            precise: false,
+            cdn_supported: false,
+            location: tl::enums::InputFileLocation::InputDocumentFileLocation(
+                tl::types::InputDocumentFileLocation {
+                    id: m.id,
+                    access_hash: m.access_hash,
+                    file_reference: m.file_reference.clone(),
+                    thumb_size: m.photo_size_type.clone(), // todo fix me
+                },
+            ),
+            offset: offset,
+            limit: limit,
+        };
+        let res = send_req(caller, &request).await;
+
+        match res {
+            Ok(res) => {
+                use tl::enums::upload::File;
+                match res {
+                    File::File(tfile) => {
+                        let len = tfile.bytes.len() as i32;
+                        out_buffer.write(&tfile.bytes);
+                        if len == limit {
+                            offset = offset + limit;
+                        } else {
+                            break;
+                        }
+                    }
+                    File::CdnRedirect(red) => {
+                        break;
+                    }
+                };
+            }
+            Err(err) => {
+                break;
+            }
+        }
+    }
+
+    if out_buffer.len() == 0 {
+        return Err(GenErr::Download);
+    }
+
+    Ok(out_buffer)
+}
+
+pub async fn get_file(caller: &mut Caller, req: tl::types::InputFileLocation) {
+    let request = tl::functions::upload::GetFile {
+        precise: false,
+        cdn_supported: false,
+        location: tl::enums::InputFileLocation::Location(req),
+        offset: 0,
+        limit: 524288,
+    };
+    let res = send_req(caller, &request).await.unwrap();
+    // println!("get_chat_id:  {:#?}", res);
+}
+
+pub async fn get_file_photo(caller: &mut Caller, req: tl::types::InputPhotoFileLocation) {
+    // println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  {:#?}", req);
+    let request = tl::functions::upload::GetFile {
+        precise: false,
+        cdn_supported: false,
+        location: tl::enums::InputFileLocation::InputPhotoFileLocation(req.clone()),
+        offset: 0,
+        limit: 524288,
+    };
+    let res = send_req(caller, &request).await.unwrap();
+
+    std::fs::create_dir_all("./out/").unwrap();
+    let name = format!("./out/{}.jpg", req.id);
+    let mut f = std::fs::File::create(name).unwrap();
+
+    use tl::enums::upload::File;
+
+    match res {
+        File::File(tfile) => {
+            f.write(&tfile.bytes);
+        }
+        File::CdnRedirect(red) => {}
+    };
+}
+
+pub async fn get_file_doc(caller: &mut Caller, req: tl::types::InputDocumentFileLocation) {
+    let limit = 524288;
+    let mut out_buffer = Vec::with_capacity(limit as usize);
+    let mut offset = 0;
+
+    loop {
+        let request = tl::functions::upload::GetFile {
+            precise: false,
+            cdn_supported: false,
+            location: tl::enums::InputFileLocation::InputDocumentFileLocation(req.clone()),
+            offset: offset,
+            limit: limit,
+        };
+        let res = send_req(caller, &request).await;
+
+        match res {
+            Ok(res) => {
+                use tl::enums::upload::File;
+                match res {
+                    File::File(tfile) => {
+                        let len = tfile.bytes.len() as i32;
+                        out_buffer.write(&tfile.bytes);
+                        if len == limit {
+                            offset = offset + limit;
+                        } else {
+                            break;
+                        }
+                    }
+                    File::CdnRedirect(red) => {
+                        break;
+                    }
+                };
+            }
+            Err(err) => {
+                break;
+            }
+        }
+        //println!("%%%%%% get_file_photo :  {:#?}", res);
+    }
+
+    if out_buffer.len() == 0 {
+        return;
+    }
+
+    std::fs::create_dir_all("./out/").unwrap();
+    let name = format!("./out/{}.file", req.id);
+    let mut f = std::fs::File::create(name).unwrap();
+    f.write(&out_buffer);
 }
 
 ////////////////////////////////////// Archives ////////////////////////////////////

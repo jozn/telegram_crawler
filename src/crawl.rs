@@ -1,16 +1,16 @@
+use grammers_client::Client;
 use grammers_tl_types::Serializable;
 use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use rand;
 use rand::Rng;
 use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
 use std::ops::Index;
+use std::sync::Mutex;
 use std::time::Duration;
 use tokio::time::delay_for;
-use grammers_client::Client;
-use once_cell::sync::Lazy;
-use std::sync::Mutex;
 
 use crate::{db, errors::GenErr, tg, types, utils};
 
@@ -98,7 +98,7 @@ pub async fn crawl_next_channel_messages() -> Result<(), GenErr> {
             offset_id: 0,
             offset_date: 0,
             add_offset: 0,
-            limit: 3,
+            limit: 100,
             max_id: 0,
             min_id: 0,
             hash: 0,
@@ -107,6 +107,16 @@ pub async fn crawl_next_channel_messages() -> Result<(), GenErr> {
         let rpc_res = tg::get_messages(&mut caller, req).await;
 
         println!("channel: {:#?} \n\n  res >> {:#?}", ci, rpc_res);
+
+        //// Dl medias
+        let r = rpc_res.unwrap();
+        for m in r.msgs {
+            if let Some(f) = m.media {
+                println!("++++ Downloading file {}{}", f.id, f.file_extention);
+                let t = tg::dl_media_to_disck(&mut caller, &f).await;
+                println!("--- result {:?}", t);
+            }
+        }
 
         delay_for(Duration::from_millis(5000)).await;
     }
@@ -148,7 +158,4 @@ mod tests {
             // println!("> {}", super::get_next_channel_username());
         }
     }
-
-
-
 }

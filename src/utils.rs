@@ -74,18 +74,19 @@ pub fn time_now_sec() -> u32 {
         .as_secs() as u32
 }
 
-pub fn get_file_extension_from_mime_type(mt :&str) -> String {
+pub fn get_file_extension_from_mime_type(mt: &str) -> String {
     let out = match mt {
         "image/jpeg" => "jpg",
         "audio/mpeg" => "mp3",
         "audio/midi" => "midi",
+        "audio/ogg" => "ogg",
         "text/x-pascal" => "pas",
         "text/x-asm" => "asm",
         "video/quicktime" => "mov",
         _ => mime_db::extension(mt).unwrap_or("unk"),
     };
 
-    format!(".{}",out)
+    format!(".{}", out)
 }
 
 #[cfg(test)]
@@ -135,6 +136,7 @@ mod tests {
         assert_eq!(mime_db::extension("video/mp4").unwrap(), "mp4");
         assert_eq!(mime_db::extension("audio/midi").unwrap(), "mid"); // midi
         assert_eq!(mime_db::extension("audio/mpeg").unwrap(), "mpga"); // mp3
+        assert_eq!(mime_db::extension("audio/ogg").unwrap(), "oga"); //
         assert_eq!(mime_db::extension("video/quicktime").unwrap(), "qt"); // mov
     }
 }

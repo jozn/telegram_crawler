@@ -10,6 +10,7 @@ use std::fmt::Display;
 pub enum GenErr {
     DB(rusqlite::Error),
     Io,
+    Download,
     TGRPC(RpcError),
     TGConnection,
     TGAuth(AuthorizationError),
