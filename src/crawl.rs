@@ -110,11 +110,39 @@ pub async fn crawl_next_channel_messages() -> Result<(), GenErr> {
 
         //// Dl medias
         let r = rpc_res.unwrap();
-        for m in r.msgs {
-            if let Some(f) = m.media {
-                println!("++++ Downloading file {}{}", f.id, f.file_extention);
-                let t = tg::dl_media_to_disck(&mut caller, &f).await;
-                println!("--- result {:?}", t);
+        if true {
+            for m in r.msgs {
+                // dl media
+                /*if let Some(f) = m.media {
+                    println!("++++ Downloading file {}{}", f.id, f.file_extention);
+                    let t = tg::dl_media_to_disck(&mut caller, &f).await;
+                    println!("--- result {:?}", t);
+                }*/
+
+                // dl humb
+                if let Some(f) = m.media {
+                    println!("++++ Downloading thumbs file {}{}", f.id, f.file_extention);
+                    let t = tg::dl_media_thumb_to_disk(&mut caller, f).await;
+                    println!("--- result {:?}", t);
+                }
+
+                /*// dl video thumb -- old
+                if let Some(f) = m.media {
+                    if let Some(t) = f.video_thumbs {
+                        println!("++++ Downloading video thumb {}{}", f.id, f.file_extention);
+                        let t = tg::dl_thumb_to_disk_old(&mut caller, &t).await;
+                        println!("--- result {:?}", t);
+                    }
+                }*/
+
+                /*// dl webpage photo
+                if let Some(v) = m.webpage {
+                    if let Some(f) = v.photo {
+                        println!("++++ Downloading webpage file file {}{}", f.id, f.file_extention);
+                        let t = tg::dl_media_to_disck(&mut caller, &f).await;
+                        println!("--- result {:?}", t);
+                    }
+                }*/
             }
         }
 

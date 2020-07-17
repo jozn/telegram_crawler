@@ -10,6 +10,7 @@ use std::io::Write;
 
 use crate::types::{Media, MediaThumb};
 use crate::{errors::GenErr, types, utils};
+use log::kv::Source;
 
 pub struct Caller {
     pub client: Client,
@@ -204,69 +205,16 @@ fn process_inline_channel_messages(
                     // println!(">>> msg fwd \n {:#?}", m2);
                 }
 
-                let mut ms = conv_message_to_msg(m.clone());
+                let mut msg = conv_message_to_msg(m.clone());
                 let mut u = extract_urls_from_message_entity(m.entities);
 
-                if let Some(f) = m.media.clone() {
-                    ms.media = process_inline_media(f);
-                    // println!(">>>> file meida {:#?}", f);
-                    /*use tl::enums::MessageMedia;
-                    match f {
-                        MessageMedia::Photo(photo) => {
-                            if let Some(pic) = photo.photo {
-                                use tl::enums::Photo;
-                                match pic {
-                                    Photo::Photo(photo) => {
-                                        let p = photo;
-                                        let inp = tl::types::InputPhotoFileLocation {
-                                            id: p.id,
-                                            access_hash: p.access_hash,
-                                            file_reference: p.file_reference,
-                                            thumb_size: "w".to_string(),
-                                        };
-                                        // get_file_photo(caller, inp).await;
-                                    }
-                                    _ => {}
-                                }
-                            }
-                        }
-
-                        MessageMedia::Document(doc) => {
-                            println!("============== document {:#?}", doc);
-                            if let Some(document) = doc.document {
-                                use tl::enums::Document;
-                                match document {
-                                    Document::Document(doc) => {
-                                        let d = doc;
-                                        let f = tl::types::InputDocumentFileLocation {
-                                            id: d.id,
-                                            access_hash: d.access_hash,
-                                            file_reference: d.file_reference,
-                                            thumb_size: "w".to_string(),
-                                        };
-                                        // get_file_doc(caller, f).await;
-                                    },
-                                    Document::Empty(e) => {},
-                                }
-                            }
-                        },
-                        MessageMedia::Empty(t) => {},
-                        MessageMedia::Geo(t) => {},
-                        MessageMedia::Contact(t) => {},
-                        MessageMedia::Unsupported(t) => {},
-                        MessageMedia::WebPage(t) => {
-                            println!("********** webpage {:#?}", t);
-                        },
-                        MessageMedia::Venue(t) => {},
-                        MessageMedia::Game(t) => {},
-                        MessageMedia::Invoice(t) => {},
-                        MessageMedia::GeoLive(t) => {},
-                        MessageMedia::Poll(t) => {},
-                    }*/
+                if let Some(mm) = m.media.clone() {
+                    msg.media = process_inline_media(mm.clone());
+                    msg.webpage = process_inline_webpage(mm);
                 }
 
                 urls.append(&mut u);
-                msgs.push(ms);
+                msgs.push(msg);
             }
         }
     }
@@ -310,9 +258,16 @@ fn process_inline_media(mm: tl::enums::MessageMedia) -> Option<types::Media> {
     use types::MediaType;
     match mm {
         MessageMedia::Photo(photo) => {
-            m.media_type = MediaType::Image;
-            m.ttl_seconds = photo.ttl_seconds.unwrap_or(0);
             if let Some(pic) = photo.photo {
+                let mp = conv_photo_to_media(pic);
+                if let Some(mut mp) = mp {
+                    // mp.media_type = MediaType::Image;
+                    mp.ttl_seconds = photo.ttl_seconds.unwrap_or(0);
+                    return Some(mp)
+                }
+
+            }
+            /*if let Some(pic) = photo.photo {
                 // println!("====== Photo {:#?}", pic);
 
                 use tl::enums::Photo;
@@ -355,8 +310,8 @@ fn process_inline_media(mm: tl::enums::MessageMedia) -> Option<types::Media> {
                     }
                     Photo::Empty(e) => {}
                 }
-            };
-            return Some(m);
+            };*/
+            // return Some(m);
         }
 
         MessageMedia::Document(doc) => {
@@ -366,7 +321,7 @@ fn process_inline_media(mm: tl::enums::MessageMedia) -> Option<types::Media> {
                 use tl::enums::Document;
                 match document {
                     Document::Document(doc) => {
-                        let p = doc;
+                        let p = doc.clone();
                         m.media_type = MediaType::File;
 
                         m.id = p.id;
@@ -383,8 +338,9 @@ fn process_inline_media(mm: tl::enums::MessageMedia) -> Option<types::Media> {
                         //todo move to just video + remove rec
                         if p.thumbs.is_some() {
                             m.video_thumbs_rec =
-                                Box::new(conv_vidoe_thumbs_rec(p.thumbs.clone().unwrap()));
+                                Box::new(conv_vidoe_thumbs_rec(&m, p.thumbs.clone().unwrap()));
                             m.video_thumbs = conv_vidoe_thumbs(p.thumbs.unwrap());
+                            println!("+++ vidoe: {:#?} ", doc)
                         }
 
                         for atr in p.attributes {
@@ -443,13 +399,57 @@ fn process_inline_media(mm: tl::enums::MessageMedia) -> Option<types::Media> {
         MessageMedia::Contact(t) => {}
         MessageMedia::Unsupported(t) => {}
         MessageMedia::WebPage(t) => {
-            println!("********** webpage {:#?}", t);
+            use tl::enums::WebPage;
+            match t.webpage {
+                WebPage::Empty(v) => {},
+                WebPage::Pending(v) => {},
+                WebPage::Page(v) => {
+
+                },
+                WebPage::NotModified(v) => {},
+            }
+            // println!("********** webpage {:#?}", t);
         }
         MessageMedia::Venue(t) => {}
         MessageMedia::Game(t) => {}
         MessageMedia::Invoice(t) => {}
         MessageMedia::GeoLive(t) => {}
         MessageMedia::Poll(t) => {}
+    };
+    None
+}
+
+fn process_inline_webpage(mm: tl::enums::MessageMedia) -> Option<types::WebPage> {
+    use tl::enums::MessageMedia;
+    match mm {
+        MessageMedia::WebPage(t) => {
+            use tl::enums::WebPage;
+            match t.webpage {
+                WebPage::Empty(v) => {},
+                WebPage::Pending(v) => {},
+                WebPage::Page(v) => {
+                    let mut w = types::WebPage {
+                        id: v.id,
+                        url: v.url,
+                        display_url: v.display_url,
+                        hash: v.hash,
+                        page_type: v.r#type.unwrap_or("".to_string()),
+                        site_name: v.site_name.unwrap_or("".to_string()),
+                        title: v.title.unwrap_or("".to_string()),
+                        description: v.description.unwrap_or("".to_string()),
+                        photo: None,
+                    };
+
+                    if v.photo.is_some() {
+                        w.photo = conv_photo_to_media(v.photo.unwrap())
+                    }
+
+                    return Some(w)
+                },
+                WebPage::NotModified(v) => {},
+            }
+        },
+        _ => {}
     };
     None
 }
@@ -488,6 +488,7 @@ fn conv_message_to_msg(m: tl::types::Message) -> types::Msg {
         forward: fwd,
         replay: None,
         media: None,
+        webpage: None,
     }
 }
 
@@ -513,6 +514,47 @@ fn conv_file_location(fl: tl::enums::FileLocation) -> (i64, i32) {
     }
 }
 
+fn conv_photo_to_media(photo_enum: tl::enums::Photo) -> Option<types::Media> {
+    let mut m = types::Media::default();
+    use tl::enums::Photo;
+    match photo_enum {
+        Photo::Photo(photo) => {
+            let p = photo;
+            m.media_type = types::MediaType::Image;
+            m.has_sticker = p.has_stickers;
+            m.id = p.id;
+            m.access_hash = p.access_hash;
+            m.file_reference = p.file_reference;
+            m.date = p.date;
+            m.dc_id = p.dc_id;
+            m.file_extention = ".jpg".to_string();
+
+            for s in p.sizes {
+                use tl::enums::PhotoSize;
+                match s {
+                    PhotoSize::Size(ps) => {
+                        if m.size < ps.size {
+                            // select the maximum
+                            m.w = ps.w;
+                            m.h = ps.h;
+                            m.size = ps.size;
+                            m.photo_size_type = ps.r#type;
+
+                            let fl = conv_file_location(ps.location);
+                            m.dep_volume_id = fl.0;
+                            m.dep_local_id = fl.1;
+                        }
+                    }
+                    _ => {}
+                }
+            };
+            return Some(m);
+        },
+        Photo::Empty(e) => {}
+    };
+    None
+}
+
 fn conv_vidoe_thumbs(vts: Vec<tl::enums::PhotoSize>) -> Option<MediaThumb> {
     if vts.len() == 0 {
         return None;
@@ -526,6 +568,7 @@ fn conv_vidoe_thumbs(vts: Vec<tl::enums::PhotoSize>) -> Option<MediaThumb> {
             PhotoSize::Size(s) => {
                 // select the maximum one
                 if m.size < s.size {
+                    m.size_type = s.r#type;
                     m.w = s.w;
                     m.h = s.h;
                     m.size = s.size;
@@ -546,12 +589,12 @@ fn conv_vidoe_thumbs(vts: Vec<tl::enums::PhotoSize>) -> Option<MediaThumb> {
     Some(m)
 }
 
-fn conv_vidoe_thumbs_rec(vts: Vec<tl::enums::PhotoSize>) -> Option<Media> {
-    if vts.len() == 0 {
-        return None;
-    }
-
+fn conv_vidoe_thumbs_rec(medid: &types::Media, vts: Vec<tl::enums::PhotoSize>) -> Option<Media> {
     let mut m = Media::default();
+    m.id = medid.id;
+    m.access_hash = medid.access_hash;
+    m.file_reference = medid.file_reference.clone();
+    m.file_extention = "jpg".to_string();
 
     for vt in vts {
         use tl::enums::PhotoSize;
@@ -559,6 +602,7 @@ fn conv_vidoe_thumbs_rec(vts: Vec<tl::enums::PhotoSize>) -> Option<Media> {
             PhotoSize::Size(s) => {
                 // select the maximum one
                 if m.size < s.size {
+                    m.photo_size_type = s.r#type;
                     m.w = s.w;
                     m.h = s.h;
                     m.size = s.size;
@@ -570,23 +614,44 @@ fn conv_vidoe_thumbs_rec(vts: Vec<tl::enums::PhotoSize>) -> Option<Media> {
                             m.dep_local_id = l.local_id;
                         }
                     }
-                }
+                };
+                return Some(m)
             }
             _ => {}
         }
     }
-
-    Some(m)
+    None
 }
 
 ////////////////////////////////////// Archives dls ////////////////////////////////
 
-pub async fn dl_media_to_disck(caller: &mut Caller, m: &types::Media) -> Result<(), GenErr> {
-    let res = dl_media(caller, m.clone()).await?;
-    std::fs::create_dir_all("./_dl/").unwrap();
-    let name = format!("./_dl/{}{}", m.id, m.file_extention);
+pub async fn dl_thumb_to_disk_old(caller: &mut Caller, t: &types::MediaThumb) -> Result<(), GenErr> {
+    // hack: use Media for dl
+    let mut m = types::Media::default();
+    m.dep_volume_id = t.dep_volume_id;
+    m.dep_local_id = t.dep_local_id;
+    m.w = t.w;
+    m.h = t.h;
+    m.size = t.size;
+    m.media_type = types::MediaType::Image;
+    let res = _dl_image(caller, m.clone()).await?;
+    std::fs::create_dir_all("./_dl_thumb/").unwrap();
+    let name = format!("./_dl_thumb/{}{}", m.id, m.file_extention);
     let mut f = std::fs::File::create(name).unwrap();
     f.write(&res);
+    Ok(())
+}
+
+pub async fn dl_media_thumb_to_disk(caller: &mut Caller, m: types::Media) -> Result<(), GenErr> {
+    // let o = *m.video_thumbs_rec;
+    if let Some(t) = *m.video_thumbs_rec {
+        // println!("++++ Downloading video thumb {}{}", o. );
+        let res = _dl_file(caller, t.clone()).await?;
+        std::fs::create_dir_all("./_dl_thumb/").unwrap();
+        let name = format!("./_dl_thumb/{}.{}", t.id, t.file_extention);
+        let mut f = std::fs::File::create(name).unwrap();
+        f.write(&res);
+    };
     Ok(())
 }
 

@@ -65,10 +65,11 @@ pub struct Msg {
     pub replay: Option<MsgReplayTo>,
 
     pub media: Option<Media>,
+    pub webpage: Option<WebPage>,
     // raw: tl::types::Message,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum MediaType {
     Unknown,
     Image,
@@ -142,12 +143,37 @@ pub struct Media {
 #[derive(Clone, Serialize, Deserialize, Default, Debug)]
 // #[derive(Clone, Debug, Default)]
 pub struct MediaThumb {
+    pub size_type: String,
     pub dep_volume_id: i64,
     pub dep_local_id: i32,
     pub w: i32,
     pub h: i32,
     pub size: i32,
     // pub file_extention: String,
+}
+
+#[derive(Clone, Serialize, Deserialize, Default, Debug)]
+// #[derive(Clone, Debug, Default)]
+pub struct WebPage {
+    pub id: i64,
+    pub url: String, // "https://m.youtube.com/watch?v=fQVhppRP4Wo"
+    pub display_url: String, // "youtube.com/watch?v=fQVhppRP4Wo"
+    pub hash: i32, // 0 58695
+    pub page_type: String, // opt - video photo article
+    pub site_name: String, // opt
+    pub title: String, // opt
+    pub description: String, // opt
+    // pub photo: Option<crate::enums::Photo>,
+    pub photo: Option<Media>,
+    // pub embed_url: Option<String>,
+    // pub embed_type: Option<String>,
+    // pub embed_width: Option<i32>,
+    // pub embed_height: Option<i32>,
+    // pub duration: Option<i32>,
+    // pub author: Option<String>,
+    // pub document: Option<crate::enums::Document>,
+    // pub cached_page: Option<crate::enums::Page>,
+    // pub attributes: Option<Vec<crate::enums::WebPageAttribute>>,*/
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
