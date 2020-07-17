@@ -98,7 +98,7 @@ pub async fn crawl_next_channel_messages() -> Result<(), GenErr> {
             offset_id: 0,
             offset_date: 0,
             add_offset: 0,
-            limit: 100,
+            limit: 3,
             max_id: 0,
             min_id: 0,
             hash: 0,
@@ -120,11 +120,11 @@ pub async fn crawl_next_channel_messages() -> Result<(), GenErr> {
                 }*/
 
                 // dl humb
-                if let Some(f) = m.media {
+                /*if let Some(f) = m.media {
                     println!("++++ Downloading thumbs file {}{}", f.id, f.file_extention);
                     let t = tg::dl_media_thumb_to_disk(&mut caller, f).await;
                     println!("--- result {:?}", t);
-                }
+                }*/
 
                 /*// dl video thumb -- old
                 if let Some(f) = m.media {

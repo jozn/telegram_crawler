@@ -66,6 +66,7 @@ pub struct Msg {
 
     pub media: Option<Media>,
     pub webpage: Option<WebPage>,
+    pub markup_urls: Option<Vec<MarkupUrl>>,
     // raw: tl::types::Message,
 }
 
@@ -151,17 +152,23 @@ pub struct MediaThumb {
     pub size: i32,
     // pub file_extention: String,
 }
+#[derive(Clone, Serialize, Deserialize, Default, Debug)]
+pub struct MarkupUrl {
+    pub row_id: i64,
+    pub text: String,
+    pub url: String,
+}
 
 #[derive(Clone, Serialize, Deserialize, Default, Debug)]
 // #[derive(Clone, Debug, Default)]
 pub struct WebPage {
     pub id: i64,
-    pub url: String, // "https://m.youtube.com/watch?v=fQVhppRP4Wo"
+    pub url: String,         // "https://m.youtube.com/watch?v=fQVhppRP4Wo"
     pub display_url: String, // "youtube.com/watch?v=fQVhppRP4Wo"
-    pub hash: i32, // 0 58695
-    pub page_type: String, // opt - video photo article
-    pub site_name: String, // opt
-    pub title: String, // opt
+    pub hash: i32,           // 0 58695
+    pub page_type: String,   // opt - video photo article
+    pub site_name: String,   // opt
+    pub title: String,       // opt
     pub description: String, // opt
     // pub photo: Option<crate::enums::Photo>,
     pub photo: Option<Media>,

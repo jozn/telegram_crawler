@@ -177,6 +177,7 @@ async fn process_channel_msgs(
     // let mut urls: Vec<String> = vec![];
     match mt {
         Messages::ChannelMessages(cm) => {
+            println!("messages #{:#?}", cm);
             msg_holder.channels = process_inline_channel_chats(cm.chats.clone());
             process_inline_channel_users(&cm.users);
             let res = process_inline_channel_messages(cm.messages.clone());
@@ -211,6 +212,10 @@ fn process_inline_channel_messages(
                 if let Some(mm) = m.media.clone() {
                     msg.media = process_inline_media(mm.clone());
                     msg.webpage = process_inline_webpage(mm);
+                }
+
+                if let Some(rm) = m.reply_markup {
+                    msg.markup_urls = process_inline_markup_urls(rm);
                 }
 
                 urls.append(&mut u);
@@ -263,9 +268,8 @@ fn process_inline_media(mm: tl::enums::MessageMedia) -> Option<types::Media> {
                 if let Some(mut mp) = mp {
                     // mp.media_type = MediaType::Image;
                     mp.ttl_seconds = photo.ttl_seconds.unwrap_or(0);
-                    return Some(mp)
+                    return Some(mp);
                 }
-
             }
             /*if let Some(pic) = photo.photo {
                 // println!("====== Photo {:#?}", pic);
@@ -340,7 +344,7 @@ fn process_inline_media(mm: tl::enums::MessageMedia) -> Option<types::Media> {
                             m.video_thumbs_rec =
                                 Box::new(conv_vidoe_thumbs_rec(&m, p.thumbs.clone().unwrap()));
                             m.video_thumbs = conv_vidoe_thumbs(p.thumbs.unwrap());
-                            println!("+++ vidoe: {:#?} ", doc)
+                            // println!("+++ vidoe: {:#?} ", doc)
                         }
 
                         for atr in p.attributes {
@@ -401,12 +405,10 @@ fn process_inline_media(mm: tl::enums::MessageMedia) -> Option<types::Media> {
         MessageMedia::WebPage(t) => {
             use tl::enums::WebPage;
             match t.webpage {
-                WebPage::Empty(v) => {},
-                WebPage::Pending(v) => {},
-                WebPage::Page(v) => {
-
-                },
-                WebPage::NotModified(v) => {},
+                WebPage::Empty(v) => {}
+                WebPage::Pending(v) => {}
+                WebPage::Page(v) => {}
+                WebPage::NotModified(v) => {}
             }
             // println!("********** webpage {:#?}", t);
         }
@@ -425,8 +427,8 @@ fn process_inline_webpage(mm: tl::enums::MessageMedia) -> Option<types::WebPage>
         MessageMedia::WebPage(t) => {
             use tl::enums::WebPage;
             match t.webpage {
-                WebPage::Empty(v) => {},
-                WebPage::Pending(v) => {},
+                WebPage::Empty(v) => {}
+                WebPage::Pending(v) => {}
                 WebPage::Page(v) => {
                     let mut w = types::WebPage {
                         id: v.id,
@@ -444,13 +446,56 @@ fn process_inline_webpage(mm: tl::enums::MessageMedia) -> Option<types::WebPage>
                         w.photo = conv_photo_to_media(v.photo.unwrap())
                     }
 
-                    return Some(w)
-                },
-                WebPage::NotModified(v) => {},
+                    return Some(w);
+                }
+                WebPage::NotModified(v) => {}
             }
-        },
+        }
         _ => {}
     };
+    None
+}
+
+fn process_inline_markup_urls(ms: tl::enums::ReplyMarkup) -> Option<Vec<types::MarkupUrl>> {
+    let mut arr = vec![];
+    use tl::enums::ReplyMarkup;
+    match ms {
+        ReplyMarkup::ReplyInlineMarkup(im) => {
+            let mut m = -1;
+            for row in im.rows {
+                m += 1;
+
+                use tl::enums::KeyboardButtonRow;
+                match row {
+                    KeyboardButtonRow::Row(br) => {
+                        for bts in br.buttons {
+                            use tl::enums::KeyboardButton;
+                            match bts {
+                                KeyboardButton::Url(u) => {
+                                    let r = types::MarkupUrl {
+                                        row_id: m,
+                                        text: u.text,
+                                        url: u.url,
+                                    };
+                                    arr.push(r);
+                                }
+
+                                KeyboardButton::UrlAuth(u) => {
+                                    // this is for things like comments bot
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        _ => {}
+    }
+
+    if arr.len() > 0 {
+        return Some(arr);
+    }
     None
 }
 
@@ -489,6 +534,7 @@ fn conv_message_to_msg(m: tl::types::Message) -> types::Msg {
         replay: None,
         media: None,
         webpage: None,
+        markup_urls: None,
     }
 }
 
@@ -547,9 +593,9 @@ fn conv_photo_to_media(photo_enum: tl::enums::Photo) -> Option<types::Media> {
                     }
                     _ => {}
                 }
-            };
+            }
             return Some(m);
-        },
+        }
         Photo::Empty(e) => {}
     };
     None
@@ -615,7 +661,7 @@ fn conv_vidoe_thumbs_rec(medid: &types::Media, vts: Vec<tl::enums::PhotoSize>) -
                         }
                     }
                 };
-                return Some(m)
+                return Some(m);
             }
             _ => {}
         }
@@ -625,7 +671,10 @@ fn conv_vidoe_thumbs_rec(medid: &types::Media, vts: Vec<tl::enums::PhotoSize>) -
 
 ////////////////////////////////////// Archives dls ////////////////////////////////
 
-pub async fn dl_thumb_to_disk_old(caller: &mut Caller, t: &types::MediaThumb) -> Result<(), GenErr> {
+pub async fn dl_thumb_to_disk_old(
+    caller: &mut Caller,
+    t: &types::MediaThumb,
+) -> Result<(), GenErr> {
     // hack: use Media for dl
     let mut m = types::Media::default();
     m.dep_volume_id = t.dep_volume_id;
