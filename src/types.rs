@@ -229,6 +229,13 @@ pub struct Session {}
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct LoginPhone {}
+
+/////////// Tg ///////////
+
+pub struct Caller {
+    pub client: Client,
+}
+
 /////////// Sqlite ///////
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct CachedUsernameData {

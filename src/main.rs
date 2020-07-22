@@ -24,8 +24,9 @@ mod config;
 mod crawl;
 mod db;
 mod errors;
-mod tg;
+// mod tg_old;
 mod utils;
+mod tg;
 
 #[tokio::main]
 async fn main() {
@@ -33,6 +34,7 @@ async fn main() {
     // crawl::crawl_config().await;
     // crawl::crawl_next_channel().await;
 
+    // tg::get_file()
     for i in 0..1 {
         println!("{}", 1);
         // crawl::crawl_next_username().await;

@@ -11,10 +11,10 @@ pub enum GenErr {
     DB(rusqlite::Error),
     Io,
     Download,
-    TGRPC(RpcError),
-    TGConnection,
-    TGAuth(AuthorizationError),
-    TGConverter,
+    TgRPC(RpcError),
+    TgConnection,
+    TgAuth(AuthorizationError),
+    TgConverter,
     JSON(serde_json::Error),
 }
 
@@ -23,7 +23,7 @@ impl Error for GenErr {}
 impl GenErr {
     pub fn is_tg_not_found(&self) -> bool {
         match self {
-            GenErr::TGRPC(rpc) => {
+            GenErr::TgRPC(rpc) => {
                 if rpc.code == 400 {
                     true
                 } else {
@@ -36,7 +36,7 @@ impl GenErr {
 
     pub fn is_tg_username_free(&self) -> bool {
         match self {
-            GenErr::TGRPC(rpc) => {
+            GenErr::TgRPC(rpc) => {
                 if rpc.code == 400 && &rpc.name == "USERNAME_NOT_OCCUPIED" {
                     true
                 } else {
@@ -64,11 +64,11 @@ impl From<AuthorizationError> for GenErr {
         use AuthorizationError::*;
         match &tg_err {
             Invocation(inv) => match inv {
-                InvocationError::RPC(rpc) => GenErr::TGRPC(rpc.clone()),
-                _ => GenErr::TGConnection,
+                InvocationError::RPC(rpc) => GenErr::TgRPC(rpc.clone()),
+                _ => GenErr::TgConnection,
             },
-            IO(io) => GenErr::TGAuth(tg_err),
-            Gen(gen) => GenErr::TGAuth(tg_err),
+            IO(io) => GenErr::TgAuth(tg_err),
+            Gen(gen) => GenErr::TgAuth(tg_err),
         }
     }
 }
@@ -76,8 +76,8 @@ impl From<AuthorizationError> for GenErr {
 impl From<InvocationError> for GenErr {
     fn from(inv: InvocationError) -> GenErr {
         match inv {
-            InvocationError::RPC(rpc) => GenErr::TGRPC(rpc.clone()),
-            _ => GenErr::TGConnection,
+            InvocationError::RPC(rpc) => GenErr::TgRPC(rpc.clone()),
+            _ => GenErr::TgConnection,
         }
     }
 }

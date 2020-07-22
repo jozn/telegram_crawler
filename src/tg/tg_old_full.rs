@@ -98,7 +98,7 @@ pub async fn get_channel_info(
         }
     }
 
-    Err(GenErr::TGConverter)
+    Err(GenErr::TgConverter)
 }
 
 pub async fn get_channel_by_username(
@@ -138,7 +138,7 @@ pub async fn get_channel_by_username(
             }
         }
     }
-    Err(GenErr::TGConverter)
+    Err(GenErr::TgConverter)
 }
 
 pub async fn get_messages(caller: &mut Caller, req: ReqGetMessages) -> Result<MsgHolder, GenErr> {

@@ -54,12 +54,12 @@ pub async fn crawl_next_username() -> Result<(), GenErr> {
         }
 
         Err(e) => match e {
-            GenErr::TGRPC(rpc) => {
+            GenErr::TgRPC(rpc) => {
                 if rpc.code == 400 && &rpc.name == "USERNAME_NOT_OCCUPIED" {
                     save_free(false);
                 }
             }
-            GenErr::TGConverter => {
+            GenErr::TgConverter => {
                 // This means username is used in other places: personal accounts,...
                 save_free(true);
             }
@@ -80,9 +80,9 @@ pub async fn crawl_config() {
     println!("res >> {:#?}", res);
 }
 
-pub async fn get_caller() -> tg::Caller {
+pub async fn get_caller() -> types::Caller {
     let con = crate::con_mgr::get_new_session().await.unwrap();
-    let caller = tg::Caller { client: con };
+    let caller = types::Caller { client: con };
     caller
 }
 
