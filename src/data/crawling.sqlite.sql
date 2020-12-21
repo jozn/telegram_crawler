@@ -1,0 +1,32 @@
+BEGIN TRANSACTION;
+CREATE TABLE IF NOT EXISTS "cached_username" (
+	"username"	TEXT UNIQUE,
+	"channel_id"	INTEGER,
+	"data"	BLOB,
+	PRIMARY KEY("username")
+);
+CREATE TABLE IF NOT EXISTS "queue_username" (
+	"id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+	"username"	TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS "channels" (
+	"id"	INTEGER NOT NULL UNIQUE,
+	"idseq"	INTEGER PRIMARY KEY AUTOINCREMENT,
+	"username"	TEXT UNIQUE,
+	"data"	BLOB
+);
+CREATE TABLE IF NOT EXISTS "queue_new_channel" (
+	"id"	INTEGER PRIMARY KEY AUTOINCREMENT,
+	"channel_id"	INTEGER
+);
+CREATE TABLE IF NOT EXISTS "session" (
+	"id"	INTEGER PRIMARY KEY AUTOINCREMENT,
+	"data"	BLOB
+);
+CREATE TABLE IF NOT EXISTS "messages" (
+	"channel_id"	INTEGER,
+	"id"	INTEGER NOT NULL,
+	"data"	BLOB,
+	PRIMARY KEY("channel_id","id")
+);
+COMMIT;
