@@ -489,3 +489,9 @@ fn conv_vidoe_thumbs_rec(medid: &types::Media, vts: Vec<tl::enums::PhotoSize>) -
     }
     None
 }
+
+fn play_tl() {
+    let u = tl::types::Dialog{
+
+    };
+}
